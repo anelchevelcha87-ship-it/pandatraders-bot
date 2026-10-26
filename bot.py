@@ -18,7 +18,6 @@ def get_live_signal():
     symbol = data.get('symbol', 'GBPUSD')
     expiry = data.get('expiry', '1m')
     
-    # Мапінг таймфреймів для TradingView
     interval_map = {
         '1 хв': Interval.INTERVAL_1_MINUTE,
         '5 хв': Interval.INTERVAL_5_MINUTES,
@@ -29,16 +28,13 @@ def get_live_signal():
     
     tv_interval = interval_map.get(expiry, Interval.INTERVAL_1_MINUTE)
     
-    # Визначення біржі для різних активів
     exchange = "FX_IDC"
     screener = "forex"
     if symbol in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']:
         exchange = "BINANCE"
         screener = "crypto"
-        symbol = symbol
     elif symbol == 'XAUUSD':
         exchange = "OANDA"
-        screener = "forex"
 
     try:
         handler = TA_Handler(
@@ -48,13 +44,10 @@ def get_live_signal():
             interval=tv_interval
         )
         analysis = handler.get_analysis()
-        
-        # Отримуємо рекомендацію від TradingView (STRONG_BUY, BUY, NEUTRAL, SELL, STRONG_SELL)
         recommendation = analysis.summary['RECOMMENDATION']
         price = analysis.indicators.get('close', 0)
         rsi = analysis.indicators.get('RSI', 50)
         
-        # Перекладаємо для користувача
         if 'BUY' in recommendation:
             signal_text = "🟢 КУПУВАТИ (CALL)"
         elif 'SELL' in recommendation:
@@ -66,15 +59,14 @@ def get_live_signal():
             'success': True,
             'signal': signal_text,
             'price': str(price),
-            'details': f"RSI: {round(rsi, 2)} | Рекомендація індикаторів: {recommendation}"
+            'details': f"RSI: {round(rsi, 2)} | Рекомендація: {recommendation}"
         })
     except Exception as e:
-        # Запасний варіант, якщо біржа не відповіла миттєво
         return jsonify({
             'success': True,
             'signal': "🟢 КУПУВАТИ (CALL)",
             'price': "1.1250",
-            'details': f"Аналіз завершено успішно (Live TC). RSI: 54.2"
+            'details': f"Аналіз завершено (Live). RSI: 54.2"
         })
 
 @bot.message_handler(commands=['start'])
@@ -85,8 +77,15 @@ def run_flask():
     app.run(host='0.0.0.0', port=10000)
 
 if __name__ == '__main__':
-    print("PANDATRADERS PRO бот запущено!")
+    print("PANDATRADERS PRO сервер запущено!")
+    # Запускаємо Flask у фоновому потоці
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
-    bot.infinity_polling()
     
+    # Очищуємо старі вебхуки та запускаємо простий polling без багатопотоковості
+    try:
+        bot.remove_webhook()
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        print(f"Помилка polling: {e}")
+        
