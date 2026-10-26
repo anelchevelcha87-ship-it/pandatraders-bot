@@ -30,11 +30,10 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-ALL_ASSETS = [
-    'GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD',
-    'EURGBP', 'EURJPY', 'GBPJPY', 'EURAUD', 'CADCHF', 'EURCHF', 'GBPCAD',
-    'CADJPY', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'GBPAUD', 'XAUUSD', 'BTCUSD',
-    'ETHUSDT', 'SOLUSDT'
+# Скоротимо базовий список для швидкого та стабільного сканування без перевантажень
+POPULAR_ASSETS = [
+    'GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 
+    'USDCHF', 'NZDUSD', 'EURJPY', 'GBPJPY', 'XAUUSD', 'BTCUSD'
 ]
 
 def get_exchange_and_screener(symbol):
@@ -104,85 +103,48 @@ def get_signal():
         candle_is_red = current_price < open_price
 
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            if candle_is_red and expiry == '1 хв':
-                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
-            else:
-                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            if candle_is_green and expiry == '1 хв':
-                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
-            else:
-                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
         elif "BUY" in recommendation:
-            if candle_is_red and expiry == '1 хв':
-                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
-            else:
-                signal_text = "🟢 📈 ВГОРУ (CALL)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🟢 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation:
-            if candle_is_green and expiry == '1 хв':
-                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
-            else:
-                signal_text = "🔴 📉 ВНИЗ (PUT)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔴 📉 ВНИЗ (PUT)"
         else:
             signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
 
         macd_trend = "бичачий перетин" if macd_val > macd_signal else "ведмежий імпульс"
-        if rsi < 40:
-            rsi_desc = f"RSI перепроданий (~{rsi}), ціна біля нижньої межі Bollinger ({bb_lower})."
-        elif rsi > 60:
-            rsi_desc = f"RSI перекуплений (~{rsi}), ціна біля верхньої межі Bollinger ({bb_upper})."
-        else:
-            rsi_desc = f"RSI нейтральний ({rsi}), флет у межах діапазону."
-
+        rsi_desc = f"RSI ~{rsi}, ціна біля межі Bollinger." if (rsi < 40 or rsi > 60) else f"RSI нейтральний ({rsi})."
         warning_note = " ⚠️ Увага: ринок під впливом новинного фону!" if is_danger else ""
 
         details_text = (
-            f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price} (Відкриття свічки: {open_price}). {rsi_desc} "
-            f"MACD імпульс: {macd_trend}. Тренд на 15м: {higher_rec}. "
-            f"EMA50 рівень: {ema50}. Рекомендація TradingView: {recommendation}.{warning_note}"
+            f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price}. {rsi_desc} "
+            f"MACD: {macd_trend}. Тренд 15м: {higher_rec}. Рекомендація: {recommendation}.{warning_note}"
         )
 
-        return jsonify({
-            'signal': signal_text,
-            'price': str(current_price),
-            'details': details_text
-        })
+        return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
 
     except Exception as e:
         print(f"Помилка: {e}")
-        return jsonify({
-            'signal': "⚠️ ПОМИЛКА АНАЛІЗУ",
-            'price': "--",
-            'details': "Не вдалося отримати дані з ринку через високу завантаженість шлюзу."
-        })
+        return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Тимчасова затримка шлюзу, спробуйте ще раз."})
 
 @app.route('/api/scanner', methods=['GET'])
 def run_scanner():
     results = []
-    for symbol in ALL_ASSETS:
+    # Скануємо тільки топ-пари, щоб уникнути зависання сервера
+    for symbol in POPULAR_ASSETS:
         try:
             screener, exchange = get_exchange_and_screener(symbol)
             handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_1_MINUTE)
             analysis = handler.get_analysis()
             
-            higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
-            higher_analysis = higher_handler.get_analysis()
-
             recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
-            higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
             current_price = round(analysis.indicators.get("close", 0.0), 5)
-            open_price = round(analysis.indicators.get("open", current_price), 5)
 
-            candle_is_green = current_price > open_price
-            candle_is_red = current_price < open_price
-
-            # Відбираємо тільки чіткі сигнали (STRONG або підтверджені трендом)
-            if "STRONG_BUY" in recommendation or ("BUY" in recommendation and "BUY" in higher_rec):
-                if not (candle_is_red): # без різкого протилежного шуму
-                    results.append({'symbol': symbol, 'action': '📈 ВГОРУ (CALL)', 'type': 'buy', 'price': current_price})
-            elif "STRONG_SELL" in recommendation or ("SELL" in recommendation and "SELL" in higher_rec):
-                if not (candle_is_green):
-                    results.append({'symbol': symbol, 'action': '📉 ВНИЗ (PUT)', 'type': 'sell', 'price': current_price})
+            if "BUY" in recommendation:
+                results.append({'symbol': symbol, 'action': '📈 ВГОРУ (CALL)', 'type': 'buy', 'price': current_price})
+            elif "SELL" in recommendation:
+                results.append({'symbol': symbol, 'action': '📉 ВНИЗ (PUT)', 'type': 'sell', 'price': current_price})
         except Exception:
             continue
             
@@ -192,16 +154,12 @@ def run_scanner():
 def get_stats():
     data = request.get_json() or {}
     user_id = str(data.get('user_id', 'default_user'))
-    
     conn = sqlite3.connect('trading_stats.db')
     cursor = conn.cursor()
     cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
     conn.close()
-    
-    if row:
-        return jsonify({'wins': row[0], 'losses': row[1]})
-    return jsonify({'wins': 0, 'losses': 0})
+    return jsonify({'wins': row[0] if row else 0, 'losses': row[1] if row else 0})
 
 @app.route('/api/stats/update', methods=['POST'])
 def update_stats():
@@ -232,7 +190,6 @@ def update_stats():
 def reset_stats():
     data = request.get_json() or {}
     user_id = str(data.get('user_id', 'default_user'))
-    
     conn = sqlite3.connect('trading_stats.db')
     cursor = conn.cursor()
     cursor.execute('UPDATE stats SET wins = 0, losses = 0 WHERE user_id = ?', (user_id,))
@@ -243,4 +200,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-            
+    
