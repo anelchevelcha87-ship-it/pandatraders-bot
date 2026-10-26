@@ -2,10 +2,11 @@ import os
 from flask import Flask, render_template, request, jsonify
 from tradingview_ta import TA_Handler, Interval
 import sqlite3
+from datetime import datetime
+import pytz
 
 app = Flask(__name__, template_folder='templates')
 
-# Ініціалізація бази даних SQLite для збереження статистики угод
 def init_db():
     conn = sqlite3.connect('trading_stats.db')
     cursor = conn.cursor()
@@ -37,9 +38,32 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
+# Функція перевірки новинного фону та волатильності за київським часом
+def check_news_volatility():
+    try:
+        kiev_tz = pytz.timezone('Europe/Kiev')
+        now = datetime.now(kiev_tz)
+        hour = now.hour
+        minute = now.minute
+        
+        # Час пікових новин (наприклад, близько 15:30 та 17:00 за Києвом) або відкриття сесій
+        if (hour == 15 and 25 <= minute <= 45) or (hour == 17 and 0 <= minute <= 20):
+            return "🔴 Увага: висока волатильність (Вихід новин!)", True
+        elif hour < 8 or hour > 21:
+            return "🟡 Нічна сесія: низька ліквідність", False
+        else:
+            return "🟢 Ринки стабільні", False
+    except Exception:
+        return "🟢 Ринки стабільні", False
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/news-status', methods=['GET'])
+def news_status():
+    status_text, is_danger = check_news_volatility()
+    return jsonify({'status': status_text, 'danger': is_danger})
 
 @app.route('/api/signal', methods=['POST'])
 def get_signal():
@@ -49,9 +73,10 @@ def get_signal():
 
     screener, exchange = get_exchange_and_screener(symbol)
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_1_MINUTE)
+    
+    news_text, is_danger = check_news_volatility()
 
     try:
-        # Мультитаймфреймовий аналіз (основний таймфрейм + старший для підтвердження тренду)
         handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
         analysis = handler.get_analysis()
         
@@ -69,7 +94,6 @@ def get_signal():
         bb_upper = round(analysis.indicators.get("BB.upper", current_price * 1.01), 5)
         bb_lower = round(analysis.indicators.get("BB.lower", current_price * 0.99), 5)
 
-        # Логіка сигналів зі стрілками
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
             signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
@@ -81,7 +105,6 @@ def get_signal():
         else:
             signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
 
-        # Технічний опис з урахуванням MACD та Bollinger Bands
         macd_trend = "бичачий перетин" if macd_val > macd_signal else "ведмежий імпульс"
         if rsi < 40:
             rsi_desc = f"RSI перепроданий (~{rsi}), ціна біля нижньої межі Bollinger ({bb_lower})."
@@ -90,10 +113,12 @@ def get_signal():
         else:
             rsi_desc = f"RSI нейтральний ({rsi}), флет у межах діапазону."
 
+        warning_note = " ⚠️ Увага: ринок під впливом новинного фону!" if is_danger else ""
+
         details_text = (
             f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price}. {rsi_desc} "
             f"MACD імпульс: {macd_trend}. Тренд на 15м: {higher_rec}. "
-            f"EMA50 рівень: {ema50}. Рекомендація TradingView: {recommendation}."
+            f"EMA50 рівень: {ema50}. Рекомендація TradingView: {recommendation}.{warning_note}"
         )
 
         return jsonify({
@@ -110,7 +135,6 @@ def get_signal():
             'details': "Не вдалося отримати дані з ринку через високу завантаженість шлюзу."
         })
 
-# Ендпоінти для збереження та завантаження постійної статистики у БД
 @app.route('/api/stats/get', methods=['POST'])
 def get_stats():
     data = request.get_json() or {}
