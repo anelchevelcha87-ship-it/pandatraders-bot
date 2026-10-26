@@ -120,9 +120,6 @@
                 <button class="btn-asset" data-asset="AUDJPY">AUDJPY</button>
                 <button class="btn-asset" data-asset="GBPAUD">GBPAUD</button>
                 <button class="btn-asset" data-asset="XAUUSD">XAUUSD</button>
-                <button class="btn-asset" data-asset="BTCUSD">BTCUSD</button>
-                <button class="btn-asset" data-asset="ETHUSDT">ETHUSDT</button>
-                <button class="btn-asset" data-asset="SOLUSDT">SOLUSDT</button>
             </div>
         </div>
     </div>
@@ -288,10 +285,9 @@
 
         document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
 
-        // Логіка автосканера
         document.getElementById('btn-run-scanner').addEventListener('click', function() {
             const scannerRes = document.getElementById('scanner-results');
-            scannerRes.innerHTML = "⏳ Сканування ринку (перевірка 23 активів)...";
+            scannerRes.innerHTML = "⏳ Сканування ринку (форекс та золото)...";
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             fetch('/api/scanner')
@@ -365,4 +361,10 @@
         function resetStats() {
             if (confirm("Ви дійсно хочете скинути всю статистику?")) {
                 fetch('/api/stats/reset', {
-        
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => {
+             
