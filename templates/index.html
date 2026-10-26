@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pandatraders Pro</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: #12161c;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 15px;
+            padding-bottom: 70px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1b222d;
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        .live-badge {
+            background: #00c853;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .section-title {
+            font-size: 11px;
+            color: #8a99ad;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+        .tf-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+        .tf-btn {
+            background: #1b222d;
+            border: 1px solid #2a3447;
+            color: #8a99ad;
+            padding: 10px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .tf-btn.active {
+            background: #00c853;
+            color: white;
+            border-color: #00c853;
+            font-weight: bold;
+        }
+        .main-btn {
+            width: 100%;
+            background: #00c853;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .card {
+            background: #1b222d;
+            border: 1px solid #2a3447;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #8a99ad;
+            margin-bottom: 10px;
+        }
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .asset-btn {
+            background: #12161c;
+            border: 1px solid #2a3447;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .asset-btn.active {
+            border-color: #00c853;
+            background: #162620;
+            color: #00c853;
+            font-weight: bold;
+        }
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1b222d;
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #2a3447;
+        }
+        .nav-btn {
+            flex: 1;
+            text-align: center;
+            background: none;
+            border: none;
+            color: #00c853;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span>🐼 PANDATRADERS PRO</span>
+        <span class="live-badge">● LIVE</span>
+    </div>
+
+    <div class="section-title">Час експірації</div>
+    <div class="tf-grid">
+        <div class="tf-btn active" onclick="setTf('1m', this)">1 хв</div>
+        <div class="tf-btn" onclick="setTf('5m', this)">5 хв</div>
+        <div class="tf-btn" onclick="setTf('15m', this)">15 хв</div>
+        <div class="tf-btn" onclick="setTf('30m', this)">30 хв</div>
+        <div class="tf-btn" onclick="setTf('1h', this)">1 год</div>
+    </div>
+
+    <button class="main-btn" onclick="getAnalysis()">🔍 ОТРИМАТИ АНАЛІЗ ТА СИГНАЛ</button>
+
+    <div class="card">
+        <div class="card-header">
+            <span id="card-title">ГЛИБОКИЙ АНАЛІЗ АКТИВУ (GBPUSD)</span>
+            <span id="card-price">Ціна: --</span>
+        </div>
+        <div id="analysis-content">
+            <b>Очікування команди...</b><br>
+            <span style="color: #8a99ad; font-size: 13px;">Натисніть кнопку вище для запуску технічного сканування рівня EMA 50, RSI та новинного фонду.</span>
+        </div>
+    </div>
+
+    <div class="section-title">Оберіть актив</div>
+    <div class="assets-grid" id="assets-container">
+        <!-- Генерується через JS -->
+    </div>
+
+    <div class="nav-bar">
+        <button class="nav-btn">🟢 ТОРГІВЛЯ</button>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let currentPair = "GBPUSD";
+        let currentTf = "1m";
+
+        const assets = [
+            "EURUSD", "GBPUSD", "USDJPY",
+            "AUDUSD", "USDCAD", "USDCHF",
+            "NZDUSD", "EURGBP", "EURJPY",
+            "GBPJPY", "EURAUD", "XAUUSD",
+            "BTCUSD", "ETHUSDT", "SOLUSDT"
+        ];
+
+        function renderAssets() {
+            const container = document.getElementById("assets-container");
+            container.innerHTML = "";
+            assets.forEach(pair => {
+                let btn = document.createElement("div");
+                btn.className = `asset-btn ${pair === currentPair ? 'active' : ''}`;
+                btn.innerText = pair;
+                btn.onclick = () => {
+                    currentPair = pair;
+                    document.getElementById("card-title").innerText = `ГЛИБОКИЙ АНАЛІЗ АКТИВУ (${pair})`;
+                    renderAssets();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function setTf(tf, element) {
+            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+            element.classList.add('active');
+            currentTf = tf;
+        }
+
+        async function getAnalysis() {
+            const content = document.getElementById("analysis-content");
+            const priceSpan = document.getElementById("card-price");
+            
+            content.innerHTML = "<b>⏳ Аналізуємо ринок через TradingView...</b>";
+            
+            try {
+                let response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pair: currentPair, tf: currentTf })
+                });
+                
+                let data = await response.json();
+                
+                if (data.success) {
+                    priceSpan.innerText = `Ціна: ${data.price}`;
+                    let detailsHtml = data.detailed.map(l => `• ${l}`).join("<br>");
+                    
+                    content.innerHTML = `
+                        <b style="font-size: 16px;">${data.emoji} Напрямок: ${data.direction}</b><br><br>
+                        <div style="font-size: 13px; color: #cfd8dc; line-height: 1.5;">${detailsHtml}</div><br>
+                        <div style="font-size: 12px; color: #ffca28;">${data.news}</div>
+                    `;
+                } else {
+                    content.innerHTML = `<span style="color: #ff5252;">❌ Помилка: ${data.error}</span>`;
+                }
+            } catch (err) {
+                content.innerHTML = `<span style="color: #ff5252;">❌ Помилка з'єднання з сервером.</span>`;
+            }
+        }
+
+        renderAssets();
+    </script>
+</body>
+</html>
