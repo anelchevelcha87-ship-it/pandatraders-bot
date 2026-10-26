@@ -82,6 +82,7 @@ def get_signal():
         higher_analysis = higher_handler.get_analysis()
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
+        open_price = round(analysis.indicators.get("open", current_price), 5)
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
@@ -92,14 +93,29 @@ def get_signal():
         bb_upper = round(analysis.indicators.get("BB.upper", current_price * 1.01), 5)
         bb_lower = round(analysis.indicators.get("BB.lower", current_price * 0.99), 5)
 
+        candle_is_green = current_price > open_price
+        candle_is_red = current_price < open_price
+
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+            if candle_is_red and expiry == '1 хв':
+                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
+            else:
+                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+            if candle_is_green and expiry == '1 хв':
+                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
+            else:
+                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
         elif "BUY" in recommendation:
-            signal_text = "🟢 📈 ВГОРУ (CALL)"
+            if candle_is_red and expiry == '1 хв':
+                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
+            else:
+                signal_text = "🟢 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation:
-            signal_text = "🔴 📉 ВНИЗ (PUT)"
+            if candle_is_green and expiry == '1 хв':
+                signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ"
+            else:
+                signal_text = "🔴 📉 ВНИЗ (PUT)"
         else:
             signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
 
@@ -114,7 +130,7 @@ def get_signal():
         warning_note = " ⚠️ Увага: ринок під впливом новинного фону!" if is_danger else ""
 
         details_text = (
-            f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price}. {rsi_desc} "
+            f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price} (Відкриття свічки: {open_price}). {rsi_desc} "
             f"MACD імпульс: {macd_trend}. Тренд на 15м: {higher_rec}. "
             f"EMA50 рівень: {ema50}. Рекомендація TradingView: {recommendation}.{warning_note}"
         )
