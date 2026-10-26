@@ -9,8 +9,9 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #0e1621; color: #ffffff; padding: 12px; padding-bottom: 70px; }
         .header { display: flex; justify-content: space-between; align-items: center; background: #17212b; padding: 10px 14px; border-radius: 12px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
-        .live-badge { color: #2ecc71; display: flex; align-items: center; gap: 6px; }
+        .live-badge { color: #2ecc71; display: flex; align-items: center; gap: 6px; font-size: 12px; }
         .live-dot { width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; box-shadow: 0 0 8px #2ecc71; }
+        .volatility-banner { background: #17212b; border: 1px solid #232e3c; border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; color: #899bb1; }
         .section-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
         .card { background: #17212b; border-radius: 12px; padding: 12px; margin-bottom: 14px; border: 1px solid #232e3c; }
         .expiry-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
@@ -20,7 +21,6 @@
         .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
         .analysis-desc { font-size: 12px; color: #899bb1; line-height: 1.4; margin-top: 6px; }
         
-        /* Таймер та блок результату */
         .timer-card { background: #17212b; border: 1px solid #2b3847; border-radius: 12px; padding: 12px; margin-bottom: 14px; text-align: center; display: none; }
         .timer-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; margin-bottom: 4px; }
         .timer-countdown { font-size: 24px; font-weight: 700; color: #2ecc71; letter-spacing: 1px; }
@@ -44,8 +44,13 @@
 
     <div id="tab-trade" class="tab-content active">
         <div class="header">
-            <span>🐼 PANDATRADING PRO</span>
-            <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+            <span>🐼 PANDATRADERS PRO</span>
+            <div class="live-badge"><div class="live-dot"></div> MULTI-TA</div>
+        </div>
+
+        <div class="volatility-banner">
+            <span>📊 Новинний фон:</span>
+            <span style="color: #2ecc71; font-weight: 600;">🟢 Ринки стабільні</span>
         </div>
 
         <div class="section-title">Час експірації</div>
@@ -59,7 +64,7 @@
             </div>
         </div>
 
-        <button class="btn-signal" id="btn-get-signal">🔍 ОТРИМАТИ АНАЛІЗ ТА СИГНАЛ</button>
+        <button class="btn-signal" id="btn-get-signal">🔍 ОТРИМАТИ МУЛЬТИ-АНАЛІЗ</button>
 
         <div class="card">
             <div class="section-title" style="text-align: left; margin-bottom: 6px;" id="analysis-subtitle">Глибокий аналіз активу (GBPUSD)</div>
@@ -68,17 +73,16 @@
                 <span id="signal-price" style="color: #899bb1; font-size: 13px;">Ціна: --</span>
             </div>
             <div class="analysis-desc" id="signal-desc">
-                Натисніть кнопку вище для запуску технічного сканування рівня EMA 50, RSI та ринку.
+                Сканування рівнів RSI, MACD, Bollinger Bands та тренду старших таймфреймів...
             </div>
         </div>
 
-        <!-- Блок таймера експірації -->
         <div class="timer-card" id="timer-card">
             <div class="timer-title" id="timer-title-text">Угода в процесі експірації</div>
             <div class="timer-countdown" id="countdown">00:00</div>
             
             <div class="result-box" id="result-box">
-                <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Час вийшов! Яким був результат угоди?</div>
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Час вийшов! Яким був результат?</div>
                 <div class="result-btns">
                     <button class="btn-win" onclick="recordResult('win')">✅ ПЛЮС</button>
                     <button class="btn-loss" onclick="recordResult('loss')">❌ МІНУС</button>
@@ -108,11 +112,10 @@
         </div>
     </div>
 
-    <!-- Вкладка статистики -->
     <div id="tab-stats" class="tab-content">
-        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ</span></div>
+        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ (БАЗА)</span></div>
         <div class="card">
-            <div class="analysis-header">Статистика ваших сигналів:</div>
+            <div class="analysis-header">Ваша постійна історія:</div>
             <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #ffffff;" id="stats-content">
                 ✅ Успішних (Плюс): <b style="color: #2ecc71;" id="stat-wins">0</b><br>
                 ❌ Невдалих (Мінус): <b style="color: #e74c3c;" id="stat-losses">0</b><br>
@@ -133,12 +136,25 @@
         let selectedSeconds = 60;
         let timerInterval = null;
 
-        // Статистика
-        let stats = { wins: 0, losses: 0 };
-
         const tg = window.Telegram.WebApp;
         tg.expand();
         if (tg.ready) tg.ready();
+
+        const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo_user';
+
+        // Завантаження збереженої статистики з БД при запуску
+        function loadStats() {
+            fetch('/api/stats/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateStatsUI(data.wins, data.losses);
+            });
+        }
+        loadStats();
 
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -146,6 +162,7 @@
                 this.classList.add('active');
                 selectedAsset = this.getAttribute('data-asset');
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
             });
         });
 
@@ -155,6 +172,7 @@
                 this.classList.add('active');
                 selectedExpiry = this.getAttribute('data-expiry');
                 selectedSeconds = parseInt(this.getAttribute('data-sec'));
+                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
             });
         });
 
@@ -171,10 +189,10 @@
                     document.getElementById('tab-stats').classList.add('active');
                     document.getElementById('nav-stats').classList.add('active');
                 }
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             });
         });
 
-        // Запит сигналу та запуск таймера
         document.getElementById('btn-get-signal').addEventListener('click', function() {
             const statusEl = document.getElementById('signal-status');
             const priceEl = document.getElementById('signal-price');
@@ -183,14 +201,16 @@
             const resultBox = document.getElementById('result-box');
             const countdownEl = document.getElementById('countdown');
 
-            statusEl.innerText = "Сканування ринку...";
+            statusEl.innerText = "Мультитаймфрейм сканування...";
             priceEl.innerText = "Ціна: --";
-            descEl.innerText = `Аналіз індикаторів EMA 50, RSI та MACD для ${selectedAsset}...`;
+            descEl.innerText = `Збір даних RSI, MACD, Bollinger та тренду 15м для ${selectedAsset}...`;
 
             if (timerInterval) clearInterval(timerInterval);
             timerCard.style.display = 'block';
             resultBox.style.display = 'none';
             countdownEl.style.display = 'block';
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             fetch('/api/signal', {
                 method: 'POST',
@@ -200,15 +220,14 @@
             .then(response => response.json())
             .then(data => {
                 statusEl.innerText = data.signal;
-                priceEl.innerText = `Ціна входу: ${data.price}`;
+                priceEl.innerText = `Ціна: ${data.price}`;
                 descEl.innerText = data.details;
 
-                // Запуск таймера зворотного відліку
                 startTimer(selectedSeconds);
             })
             .catch(error => {
-                statusEl.innerText = "Помилка зв'язку";
-                descEl.innerText = "Не вдалося отримати дані з ринку. Спробуйте ще раз.";
+                statusEl.innerText = "⚠️ ПОМИЛКА";
+                descEl.innerText = "Не вдалося отримати ринкові дані.";
                 timerCard.style.display = 'none';
             });
         });
@@ -232,30 +251,35 @@
                 if (--timer < 0) {
                     clearInterval(timerInterval);
                     countdownEl.style.display = 'none';
-                    resultBox.style.display = 'block'; // Показ кнопок запиту профіту/збитку
+                    resultBox.style.display = 'block';
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 }
             }, 1000);
         }
 
         function recordResult(type) {
-            if (type === 'win') {
-                stats.wins++;
-            } else {
-                stats.losses++;
-            }
+            fetch('/api/stats/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, type: type })
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateStatsUI(data.wins, data.losses);
+                document.getElementById('timer-card').style.display = 'none';
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            });
+        }
 
-            // Оновлення статистики на екрані
-            document.getElementById('stat-wins').innerText = stats.wins;
-            document.getElementById('stat-losses').innerText = stats.losses;
+        function updateStatsUI(wins, losses) {
+            document.getElementById('stat-wins').innerText = wins;
+            document.getElementById('stat-losses').innerText = losses;
             
-            let total = stats.wins + stats.losses;
+            let total = wins + losses;
             document.getElementById('stat-total').innerText = total;
 
-            let winRate = total > 0 ? Math.round((stats.wins / total) * 100) : 0;
+            let winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
             document.getElementById('stat-winrate').innerText = winRate + '%';
-
-            // Ховаємо блок таймера до наступного сигналу
-            document.getElementById('timer-card').style.display = 'none';
         }
     </script>
 </body>
