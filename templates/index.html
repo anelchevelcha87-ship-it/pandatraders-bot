@@ -73,7 +73,7 @@
                 <span id="signal-price" style="color: #899bb1; font-size: 13px;">Ціна: --</span>
             </div>
             <div class="analysis-desc" id="signal-desc">
-                Оберіть актив та натисніть кнопку отримання аналізу для підвантаження реальних котирувань...
+                Оберіть актив та натисніть кнопку отримання аналізу...
             </div>
         </div>
 
@@ -104,7 +104,6 @@
                 <button class="btn-asset" data-asset="EURJPY">EURJPY</button>
                 <button class="btn-asset" data-asset="GBPJPY">GBPJPY</button>
                 <button class="btn-asset" data-asset="EURAUD">EURAUD</button>
-                <!-- Нові додані пари -->
                 <button class="btn-asset" data-asset="CADCHF">CADCHF</button>
                 <button class="btn-asset" data-asset="EURCHF">EURCHF</button>
                 <button class="btn-asset" data-asset="GBPCAD">GBPCAD</button>
@@ -113,7 +112,6 @@
                 <button class="btn-asset" data-asset="AUDCHF">AUDCHF</button>
                 <button class="btn-asset" data-asset="AUDJPY">AUDJPY</button>
                 <button class="btn-asset" data-asset="GBPAUD">GBPAUD</button>
-                <!-- Крипта та метали -->
                 <button class="btn-asset" data-asset="XAUUSD">XAUUSD</button>
                 <button class="btn-asset" data-asset="BTCUSD">BTCUSD</button>
                 <button class="btn-asset" data-asset="ETHUSDT">ETHUSDT</button>
@@ -216,6 +214,7 @@
             });
         }
 
+        // Тільки зміна активу без запуску аналізу/таймера
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
@@ -223,8 +222,6 @@
                 selectedAsset = this.getAttribute('data-asset');
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
                 if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-                
-                fetchSignalData();
             });
         });
 
@@ -255,6 +252,7 @@
             });
         });
 
+        // Запуск аналізу та таймера відбувається ТІЛЬКИ при натисканні цієї кнопки
         document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
 
         function startTimer(durationInSeconds) {
