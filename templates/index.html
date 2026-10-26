@@ -31,7 +31,7 @@
         .btn-loss { flex: 1; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
         .assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 12px 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+        .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 10px 0; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
         .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #17212b; display: flex; padding: 8px 12px; gap: 8px; border-top: 1px solid #232e3c; z-index: 100; }
         .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
@@ -93,8 +93,8 @@
         <div class="section-title">Оберіть актив</div>
         <div class="card">
             <div class="assets-grid">
-                <button class="btn-asset" data-asset="EURUSD">EURUSD</button>
                 <button class="btn-asset active" data-asset="GBPUSD">GBPUSD</button>
+                <button class="btn-asset" data-asset="EURUSD">EURUSD</button>
                 <button class="btn-asset" data-asset="USDJPY">USDJPY</button>
                 <button class="btn-asset" data-asset="AUDUSD">AUDUSD</button>
                 <button class="btn-asset" data-asset="USDCAD">USDCAD</button>
@@ -104,6 +104,16 @@
                 <button class="btn-asset" data-asset="EURJPY">EURJPY</button>
                 <button class="btn-asset" data-asset="GBPJPY">GBPJPY</button>
                 <button class="btn-asset" data-asset="EURAUD">EURAUD</button>
+                <!-- Нові додані пари -->
+                <button class="btn-asset" data-asset="CADCHF">CADCHF</button>
+                <button class="btn-asset" data-asset="EURCHF">EURCHF</button>
+                <button class="btn-asset" data-asset="GBPCAD">GBPCAD</button>
+                <button class="btn-asset" data-asset="CADJPY">CADJPY</button>
+                <button class="btn-asset" data-asset="AUDCAD">AUDCAD</button>
+                <button class="btn-asset" data-asset="AUDCHF">AUDCHF</button>
+                <button class="btn-asset" data-asset="AUDJPY">AUDJPY</button>
+                <button class="btn-asset" data-asset="GBPAUD">GBPAUD</button>
+                <!-- Крипта та метали -->
                 <button class="btn-asset" data-asset="XAUUSD">XAUUSD</button>
                 <button class="btn-asset" data-asset="BTCUSD">BTCUSD</button>
                 <button class="btn-asset" data-asset="ETHUSDT">ETHUSDT</button>
@@ -166,7 +176,6 @@
         }
         loadStats();
 
-        // Функція запиту аналізу на сервер
         function fetchSignalData() {
             loadNewsStatus();
             const statusEl = document.getElementById('signal-status');
@@ -207,7 +216,6 @@
             });
         }
 
-        // При кліку на актив — одразу оновлюємо дані по новій парі
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
@@ -216,7 +224,6 @@
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
                 if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
                 
-                // Автоматичний запит свіжої ціни при зміні пари
                 fetchSignalData();
             });
         });
@@ -248,26 +255,29 @@
             });
         });
 
-        // Кнопка примусового оновлення аналізу
         document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
 
-        function startTimer(duration) {
-            let timer = duration;
+        function startTimer(durationInSeconds) {
             const countdownEl = document.getElementById('countdown');
             const resultBox = document.getElementById('result-box');
 
             if (timerInterval) clearInterval(timerInterval);
 
+            const endTime = Date.now() + durationInSeconds * 1000;
+
             timerInterval = setInterval(function () {
-                let minutes = Math.floor(timer / 60);
-                let seconds = timer % 60;
+                const now = Date.now();
+                const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
 
                 minutes = minutes < 10 ? "0" + minutes : minutes;
                 seconds = seconds < 10 ? "0" + seconds : seconds;
 
                 countdownEl.innerText = minutes + ":" + seconds;
 
-                if (--timer < 0) {
+                if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     countdownEl.style.display = 'none';
                     resultBox.style.display = 'block';
