@@ -1,80 +1,82 @@
 import os
-import threading
-from flask import Flask, render_template, jsonify, request
-import telebot
+from flask import Flask, render_template, request, jsonify
 from tradingview_ta import TA_Handler, Interval
 
-TOKEN = os.getenv('BOT_TOKEN', 'ТИШЕ_ТУТ_ВАШ_ТОКЕН')
-bot = telebot.TeleBot(TOKEN)
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')
+
+TIMEFRAME_MAP = {
+    '1 хв': Interval.INTERVAL_1_MINUTE,
+    '5 хв': Interval.INTERVAL_5_MINUTES,
+    '15 хв': Interval.INTERVAL_15_MINUTES,
+    '30 хв': Interval.INTERVAL_30_MINUTES,
+    '1 год': Interval.INTERVAL_1_HOUR,
+}
+
+def get_exchange_and_screener(symbol):
+    symbol = symbol.upper()
+    if symbol in ['BTCUSD', 'ETHUSDT', 'SOLUSDT']:
+        return 'crypto', 'BINANCE'
+    elif symbol == 'XAUUSD':
+        return 'cfd', 'OANDA'
+    return 'forex', 'FX_IDC'
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/api/signal', methods=['POST'])
-def get_live_signal():
-    data = request.json
+def get_signal():
+    data = request.get_json() or {}
     symbol = data.get('symbol', 'GBPUSD')
-    expiry = data.get('expiry', '1m')
-    
-    interval_map = {
-        '1 хв': Interval.INTERVAL_1_MINUTE,
-        '5 хв': Interval.INTERVAL_5_MINUTES,
-        '15 хв': Interval.INTERVAL_15_MINUTES,
-        '30 хв': Interval.INTERVAL_30_MINUTES,
-        '1 год': Interval.INTERVAL_1_HOUR
-    }
-    
-    tv_interval = interval_map.get(expiry, Interval.INTERVAL_1_MINUTE)
-    
-    exchange = "FX_IDC"
-    screener = "forex"
-    if symbol in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT']:
-        exchange = "BINANCE"
-        screener = "crypto"
-    elif symbol == 'XAUUSD':
-        exchange = "OANDA"
+    expiry = data.get('expiry', '1 хв')
+
+    screener, exchange = get_exchange_and_screener(symbol)
+    interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_1_MINUTE)
 
     try:
-        handler = TA_Handler(
-            symbol=symbol,
-            exchange=exchange,
-            screener=screener,
-            interval=tv_interval
-        )
+        handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
         analysis = handler.get_analysis()
-        recommendation = analysis.summary['RECOMMENDATION']
-        price = analysis.indicators.get('close', 0)
-        rsi = analysis.indicators.get('RSI', 50)
-        
-        if 'BUY' in recommendation:
-            signal_text = "🟢 КУПУВАТИ (CALL)"
-        elif 'SELL' in recommendation:
-            signal_text = "🔴 ПРОДАВАТИ (PUT)"
+
+        current_price = round(analysis.indicators.get("close", 0.0), 5)
+        recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
+        rsi = round(analysis.indicators.get("RSI", 50.0), 2)
+        ema50 = analysis.indicators.get("EMA50", current_price)
+
+        if "BUY" in recommendation:
+            signal_text = "🟢 ВГОРУ (CALL)"
+        elif "SELL" in recommendation:
+            signal_text = "🔴 ВНИЗ (PUT)"
         else:
             signal_text = "⚪️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
-            
+
+        if rsi < 40:
+            rsi_desc = f"Індикатор RSI знаходиться в зоні перепроданості (~{rsi}), можливий відскік ціни вгору."
+        elif rsi > 60:
+            rsi_desc = f"Індикатор RSI знаходиться в зоні перекупленості (~{rsi}), можливий розворот вниз."
+        else:
+            rsi_desc = f"Ринковий індикатор RSI знаходиться на нейтральній позначці ({rsi}), чіткого тренду немає."
+
+        details_text = (
+            f"Аналіз ринку: Ціна на активі {symbol} складає {current_price}. "
+            f"{rsi_desc} Рекомендація технічних індикаторів TradingView: {recommendation}. "
+            f"Експертний висновок: зважайте на поточну волатильність та рівень EMA50 ({ema50})."
+        )
+
         return jsonify({
-            'success': True,
             'signal': signal_text,
-            'price': str(price),
-            'details': f"RSI: {round(rsi, 2)} | Рекомендація: {recommendation}"
-        })
-    except Exception as e:
-        return jsonify({
-            'success': True,
-            'signal': "🟢 КУПУВАТИ (CALL)",
-            'price': "1.1250",
-            'details': f"Аналіз завершено (Live). RSI: 54.2"
+            'price': str(current_price),
+            'details': details_text
         })
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Вітаю! Панель аналітики Pandatraders Pro активна. Відкрийте Web App для торгівлі.")
+    except Exception as e:
+        print(f"Помилка: {e}")
+        return jsonify({
+            'signal': "⚠️ ПОМИЛКА",
+            'price': "--",
+            'details': "Не вдалося отримати дані з ринку. Спробуйте ще раз."
+        })
 
 if __name__ == '__main__':
-    print("PANDATRADERS PRO сервер запущено!")
-    # Запускаємо тільки Flask-сервер, який обробляє Web App та запити TradingView
-    app.run(host='0.0.0.0', port=10000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
     
