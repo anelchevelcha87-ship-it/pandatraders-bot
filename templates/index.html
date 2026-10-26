@@ -50,7 +50,7 @@
 
         <div class="volatility-banner">
             <span>📊 Новинний фон:</span>
-            <span style="color: #2ecc71; font-weight: 600;">🟢 Ринки стабільні</span>
+            <span id="news-status-text" style="color: #2ecc71; font-weight: 600;">Перевірка...</span>
         </div>
 
         <div class="section-title">Час експірації</div>
@@ -142,7 +142,17 @@
 
         const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo_user';
 
-        // Завантаження збереженої статистики з БД при запуску
+        function loadNewsStatus() {
+            fetch('/api/news-status')
+            .then(res => res.json())
+            .then(data => {
+                const el = document.getElementById('news-status-text');
+                el.innerText = data.status;
+                el.style.color = data.danger ? '#e74c3c' : '#2ecc71';
+            });
+        }
+        loadNewsStatus();
+
         function loadStats() {
             fetch('/api/stats/get', {
                 method: 'POST',
@@ -194,6 +204,7 @@
         });
 
         document.getElementById('btn-get-signal').addEventListener('click', function() {
+            loadNewsStatus();
             const statusEl = document.getElementById('signal-status');
             const priceEl = document.getElementById('signal-price');
             const descEl = document.getElementById('signal-desc');
