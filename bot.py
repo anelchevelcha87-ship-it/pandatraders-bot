@@ -73,19 +73,8 @@ def get_live_signal():
 def send_welcome(message):
     bot.reply_to(message, "Вітаю! Панель аналітики Pandatraders Pro активна. Відкрийте Web App для торгівлі.")
 
-def run_flask():
-    app.run(host='0.0.0.0', port=10000)
-
 if __name__ == '__main__':
     print("PANDATRADERS PRO сервер запущено!")
-    # Запускаємо Flask у фоновому потоці
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.start()
+    # Запускаємо тільки Flask-сервер, який обробляє Web App та запити TradingView
+    app.run(host='0.0.0.0', port=10000)
     
-    # Очищуємо старі вебхуки та запускаємо простий polling без багатопотоковості
-    try:
-        bot.remove_webhook()
-        bot.infinity_polling(timeout=10, long_polling_timeout=5)
-    except Exception as e:
-        print(f"Помилка polling: {e}")
-        
