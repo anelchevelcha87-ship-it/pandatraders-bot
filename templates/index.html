@@ -33,6 +33,9 @@
         .assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 10px 0; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
         .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
+        
+        .btn-reset { width: 100%; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #17212b; display: flex; padding: 8px 12px; gap: 8px; border-top: 1px solid #232e3c; z-index: 100; }
         .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
         .nav-btn.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
@@ -130,6 +133,7 @@
                 📈 Прохідність (WinRate): <b style="color: #2ecc71;" id="stat-winrate">0%</b><br>
                 ⭐️ Всього угод: <b id="stat-total">0</b>
             </div>
+            <button class="btn-reset" onclick="resetStats()">🔄 СКИНУТИ СТАТИСТИКУ</button>
         </div>
     </div>
 
@@ -148,7 +152,17 @@
         tg.expand();
         if (tg.ready) tg.ready();
 
-        const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'demo_user';
+        // Надійна фіксація користувача через Telegram ID або збережений локальний ID
+        let userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+        if (!userId) {
+            userId = localStorage.getItem('panda_user_id');
+            if (!userId) {
+                userId = 'user_' + Math.random().toString(36).substring(2, 11);
+                localStorage.setItem('panda_user_id', userId);
+            }
+        } else {
+            userId = String(userId);
+        }
 
         function loadNewsStatus() {
             fetch('/api/news-status')
@@ -214,7 +228,6 @@
             });
         }
 
-        // Тільки зміна активу без запуску аналізу/таймера
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
@@ -252,7 +265,6 @@
             });
         });
 
-        // Запуск аналізу та таймера відбувається ТІЛЬКИ при натисканні цієї кнопки
         document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
 
         function startTimer(durationInSeconds) {
@@ -296,6 +308,21 @@
                 document.getElementById('timer-card').style.display = 'none';
                 if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
             });
+        }
+
+        function resetStats() {
+            if (confirm("Ви дійсно хочете скинути всю статистику?")) {
+                fetch('/api/stats/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    updateStatsUI(data.wins, data.losses);
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+                });
+            }
         }
 
         function updateStatsUI(wins, losses) {
