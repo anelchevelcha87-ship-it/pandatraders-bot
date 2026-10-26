@@ -30,6 +30,13 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
+ALL_ASSETS = [
+    'GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD',
+    'EURGBP', 'EURJPY', 'GBPJPY', 'EURAUD', 'CADCHF', 'EURCHF', 'GBPCAD',
+    'CADJPY', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'GBPAUD', 'XAUUSD', 'BTCUSD',
+    'ETHUSDT', 'SOLUSDT'
+]
+
 def get_exchange_and_screener(symbol):
     symbol = symbol.upper()
     if symbol in ['BTCUSD', 'ETHUSDT', 'SOLUSDT']:
@@ -149,6 +156,38 @@ def get_signal():
             'details': "Не вдалося отримати дані з ринку через високу завантаженість шлюзу."
         })
 
+@app.route('/api/scanner', methods=['GET'])
+def run_scanner():
+    results = []
+    for symbol in ALL_ASSETS:
+        try:
+            screener, exchange = get_exchange_and_screener(symbol)
+            handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_1_MINUTE)
+            analysis = handler.get_analysis()
+            
+            higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
+            higher_analysis = higher_handler.get_analysis()
+
+            recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
+            higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
+            current_price = round(analysis.indicators.get("close", 0.0), 5)
+            open_price = round(analysis.indicators.get("open", current_price), 5)
+
+            candle_is_green = current_price > open_price
+            candle_is_red = current_price < open_price
+
+            # Відбираємо тільки чіткі сигнали (STRONG або підтверджені трендом)
+            if "STRONG_BUY" in recommendation or ("BUY" in recommendation and "BUY" in higher_rec):
+                if not (candle_is_red): # без різкого протилежного шуму
+                    results.append({'symbol': symbol, 'action': '📈 ВГОРУ (CALL)', 'type': 'buy', 'price': current_price})
+            elif "STRONG_SELL" in recommendation or ("SELL" in recommendation and "SELL" in higher_rec):
+                if not (candle_is_green):
+                    results.append({'symbol': symbol, 'action': '📉 ВНИЗ (PUT)', 'type': 'sell', 'price': current_price})
+        except Exception:
+            continue
+            
+    return jsonify({'signals': results})
+
 @app.route('/api/stats/get', methods=['POST'])
 def get_stats():
     data = request.get_json() or {}
@@ -204,4 +243,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+            
