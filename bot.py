@@ -69,17 +69,17 @@ def get_signal():
         bb_upper = round(analysis.indicators.get("BB.upper", current_price * 1.01), 5)
         bb_lower = round(analysis.indicators.get("BB.lower", current_price * 0.99), 5)
 
-        # Логіка сильного сигналу з урахуванням мультитаймфрейму
+        # Логіка сигналів зі стрілками
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: ВГОРУ (CALL)"
+            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: ВНИЗ (PUT)"
+            signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
         elif "BUY" in recommendation:
-            signal_text = "🟢 ВГОРУ (CALL)"
+            signal_text = "🟢 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation:
-            signal_text = "🔴 ВНИЗ (PUT)"
+            signal_text = "🔴 📉 ВНИЗ (PUT)"
         else:
-            signal_text = "⚪️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
+            signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
 
         # Технічний опис з урахуванням MACD та Bollinger Bands
         macd_trend = "бичачий перетин" if macd_val > macd_signal else "ведмежий імпульс"
