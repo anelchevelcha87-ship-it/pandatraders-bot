@@ -32,7 +32,7 @@ cp .env.example .env
 Відкрий `.env` і встав свій токен від [@BotFather](https://t.me/BotFather):
 
 ```env
-BOT_TOKEN=твій_токен_тут
+8936172597:AAEywuty5IyPD4yW5jdfPS9rQddOcBrKFaoBOT_TOKEN=твій_токен_тут
 ```
 
 Запуск:
