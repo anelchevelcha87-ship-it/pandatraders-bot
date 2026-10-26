@@ -1,4 +1,4 @@
-pyTelegramBotAPI==4.26.0
-tradingview-ta==3.3.0
-python-dotenv==1.0.1
-flask==3.0.3
+flask
+tradingview-ta
+pytz
+
