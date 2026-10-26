@@ -62,13 +62,17 @@ def get_signal():
         higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
+        ema10 = round(analysis.indicators.get("EMA10", current_price), 5)
+        ema30 = round(analysis.indicators.get("EMA30", current_price), 5)
+        macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         
         candle_is_green = current_price > open_price
         candle_is_red = current_price < open_price
 
-        # Детальна оцінка ринку для розгорнутого виводу думки бота
+        # Детальний аналіз та логіка бота
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "нормальна зона")
         trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "бічний/нейтральний")
+        ema_status = "ціна вище EMA (бичачий настрій)" if current_price > ema10 else "ціна нижче EMA (ведмежий настрій)"
 
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
             signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
@@ -84,8 +88,8 @@ def get_signal():
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
             f"Тренд 15хв: {trend_desc}. "
-            f"Індикатори дають сигнал '{recommendation}'. "
-            f"Рішення сформовано на основі імпульсу свічки та загального тренду."
+            f"EMA: {ema_status} | MACD: {macd_val}. "
+            f"Логіка: облік збігу короткого імпульсу свічки, положення відносно ковзних середніх та загального тренду."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
