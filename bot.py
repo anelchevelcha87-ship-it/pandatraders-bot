@@ -38,7 +38,6 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
-# Функція перевірки новинного фону та волатильності за київським часом
 def check_news_volatility():
     try:
         kiev_tz = pytz.timezone('Europe/Kiev')
@@ -46,7 +45,6 @@ def check_news_volatility():
         hour = now.hour
         minute = now.minute
         
-        # Час пікових новин (наприклад, близько 15:30 та 17:00 за Києвом) або відкриття сесій
         if (hour == 15 and 25 <= minute <= 45) or (hour == 17 and 0 <= minute <= 20):
             return "🔴 Увага: висока волатильність (Вихід новин!)", True
         elif hour < 8 or hour > 21:
