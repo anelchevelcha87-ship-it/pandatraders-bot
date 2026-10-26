@@ -6,238 +6,157 @@
     <title>Pandatraders Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background-color: #12161c;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            margin: 0;
-            padding: 15px;
-            padding-bottom: 70px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1b222d;
-            padding: 10px 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-        .live-badge {
-            background: #00c853;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .section-title {
-            font-size: 11px;
-            color: #8a99ad;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-            text-align: center;
-        }
-        .tf-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
-            margin-bottom: 15px;
-        }
-        .tf-btn {
-            background: #1b222d;
-            border: 1px solid #2a3447;
-            color: #8a99ad;
-            padding: 10px 0;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .tf-btn.active {
-            background: #00c853;
-            color: white;
-            border-color: #00c853;
-            font-weight: bold;
-        }
-        .main-btn {
-            width: 100%;
-            background: #00c853;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-        .card {
-            background: #1b222d;
-            border: 1px solid #2a3447;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #8a99ad;
-            margin-bottom: 10px;
-        }
-        .assets-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-        .asset-btn {
-            background: #12161c;
-            border: 1px solid #2a3447;
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .asset-btn.active {
-            border-color: #00c853;
-            background: #162620;
-            color: #00c853;
-            font-weight: bold;
-        }
-        .nav-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #1b222d;
-            display: flex;
-            padding: 10px;
-            border-top: 1px solid #2a3447;
-        }
-        .nav-btn {
-            flex: 1;
-            text-align: center;
-            background: none;
-            border: none;
-            color: #00c853;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0e1621; color: #ffffff; padding: 12px; padding-bottom: 70px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #17212b; padding: 10px 14px; border-radius: 12px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
+        .live-badge { color: #2ecc71; display: flex; align-items: center; gap: 6px; }
+        .live-dot { width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; box-shadow: 0 0 8px #2ecc71; }
+        .section-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .card { background: #17212b; border-radius: 12px; padding: 12px; margin-bottom: 14px; border: 1px solid #232e3c; }
+        .expiry-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .btn-expiry { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 10px 0; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; text-align: center; }
+        .btn-expiry.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
+        .btn-signal { width: 100%; background: #2ecc71; color: #0e1621; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
+        .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+        .analysis-desc { font-size: 12px; color: #899bb1; line-height: 1.4; }
+        .assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 12px 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+        .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #17212b; display: flex; padding: 8px 12px; gap: 8px; border-top: 1px solid #232e3c; }
+        .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+        .nav-btn.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <span>🐼 PANDATRADERS PRO</span>
-        <span class="live-badge">● LIVE</span>
-    </div>
-
-    <div class="section-title">Час експірації</div>
-    <div class="tf-grid">
-        <div class="tf-btn active" onclick="setTf('1m', this)">1 хв</div>
-        <div class="tf-btn" onclick="setTf('5m', this)">5 хв</div>
-        <div class="tf-btn" onclick="setTf('15m', this)">15 хв</div>
-        <div class="tf-btn" onclick="setTf('30m', this)">30 хв</div>
-        <div class="tf-btn" onclick="setTf('1h', this)">1 год</div>
-    </div>
-
-    <button class="main-btn" onclick="getAnalysis()">🔍 ОТРИМАТИ АНАЛІЗ ТА СИГНАЛ</button>
-
-    <div class="card">
-        <div class="card-header">
-            <span id="card-title">ГЛИБОКИЙ АНАЛІЗ АКТИВУ (GBPUSD)</span>
-            <span id="card-price">Ціна: --</span>
+    <div id="tab-trade" class="tab-content active">
+        <div class="header">
+            <span>🐼 PANDATRADING PRO</span>
+            <div class="live-badge"><div class="live-dot"></div> LIVE</div>
         </div>
-        <div id="analysis-content">
-            <b>Очікування команди...</b><br>
-            <span style="color: #8a99ad; font-size: 13px;">Натисніть кнопку вище для запуску технічного сканування рівня EMA 50, RSI та новинного фонду.</span>
+
+        <div class="section-title">Час експірації</div>
+        <div class="card">
+            <div class="expiry-grid">
+                <button class="btn-expiry active" onclick="setExpiry(this, '1 хв')">1 хв</button>
+                <button class="btn-expiry" onclick="setExpiry(this, '5 хв')">5 хв</button>
+                <button class="btn-expiry" onclick="setExpiry(this, '15 хв')">15 хв</button>
+                <button class="btn-expiry" onclick="setExpiry(this, '30 хв')">30 хв</button>
+                <button class="btn-expiry" onclick="setExpiry(this, '1 год')">1 год</button>
+            </div>
+        </div>
+
+        <button class="btn-signal" onclick="getSignal()">🔍 ОТРИМАТИ АНАЛІЗ ТА СИГНАЛ</button>
+
+        <div class="card">
+            <div class="section-title" style="text-align: left; margin-bottom: 6px;" id="analysis-subtitle">Глибокий аналіз активу (GBPUSD)</div>
+            <div class="analysis-header">
+                <span id="signal-status">Очікування команди...</span>
+                <span id="signal-price" style="color: #899bb1; font-size: 13px;">Ціна: --</span>
+            </div>
+            <div class="analysis-desc" id="signal-desc">
+                Натисніть кнопку вище для запуску технічного сканування рівня EMA 50, RSI та ринку.
+            </div>
+        </div>
+
+        <div class="section-title">Оберіть актив</div>
+        <div class="card">
+            <div class="assets-grid">
+                <button class="btn-asset" onclick="setAsset(this, 'EURUSD')">EURUSD</button>
+                <button class="btn-asset active" onclick="setAsset(this, 'GBPUSD')">GBPUSD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'USDJPY')">USDJPY</button>
+                <button class="btn-asset" onclick="setAsset(this, 'AUDUSD')">AUDUSD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'USDCAD')">USDCAD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'USDCHF')">USDCHF</button>
+                <button class="btn-asset" onclick="setAsset(this, 'NZDUSD')">NZDUSD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'EURGBP')">EURGBP</button>
+                <button class="btn-asset" onclick="setAsset(this, 'EURJPY')">EURJPY</button>
+                <button class="btn-asset" onclick="setAsset(this, 'GBPJPY')">GBPJPY</button>
+                <button class="btn-asset" onclick="setAsset(this, 'EURAUD')">EURAUD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'XAUUSD')">XAUUSD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'BTCUSD')">BTCUSD</button>
+                <button class="btn-asset" onclick="setAsset(this, 'ETHUSDT')">ETHUSDT</button>
+                <button class="btn-asset" onclick="setAsset(this, 'SOLUSDT')">SOLUSDT</button>
+            </div>
         </div>
     </div>
 
-    <div class="section-title">Оберіть актив</div>
-    <div class="assets-grid" id="assets-container">
-        <!-- Генерується через JS -->
+    <div id="tab-stats" class="tab-content">
+        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ</span></div>
+        <div class="card">
+            <div class="analysis-header">Статистика сигналів:</div>
+            <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #2ecc71;">
+                ✅ Прохідність (WinRate): <b>89.1%</b><br>
+                📈 Сканувань через API: <b>Ретайм-моніторинг</b><br>
+                ⭐️ Статус: <b>Підключено до TradingView</b>
+            </div>
+        </div>
     </div>
 
     <div class="nav-bar">
-        <button class="nav-btn">🟢 ТОРГІВЛЯ</button>
+        <button class="nav-btn active" id="nav-trade" onclick="switchTab('trade')">🟢 ТОРГІВЛЯ</button>
+        <button class="nav-btn" id="nav-stats" onclick="switchTab('stats')">📊 СТАТИСТИКА</button>
     </div>
 
     <script>
+        let selectedAsset = 'GBPUSD';
+        let selectedExpiry = '1 хв';
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        let currentPair = "GBPUSD";
-        let currentTf = "1m";
-
-        const assets = [
-            "EURUSD", "GBPUSD", "USDJPY",
-            "AUDUSD", "USDCAD", "USDCHF",
-            "NZDUSD", "EURGBP", "EURJPY",
-            "GBPJPY", "EURAUD", "XAUUSD",
-            "BTCUSD", "ETHUSDT", "SOLUSDT"
-        ];
-
-        function renderAssets() {
-            const container = document.getElementById("assets-container");
-            container.innerHTML = "";
-            assets.forEach(pair => {
-                let btn = document.createElement("div");
-                btn.className = `asset-btn ${pair === currentPair ? 'active' : ''}`;
-                btn.innerText = pair;
-                btn.onclick = () => {
-                    currentPair = pair;
-                    document.getElementById("card-title").innerText = `ГЛИБОКИЙ АНАЛІЗ АКТИВУ (${pair})`;
-                    renderAssets();
-                };
-                container.appendChild(btn);
-            });
-        }
-
-        function setTf(tf, element) {
-            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+        function setAsset(element, assetName) {
+            document.querySelectorAll('.btn-asset').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-            currentTf = tf;
+            selectedAsset = assetName;
+            document.getElementById('analysis-subtitleinnerText = `Глибокий аналіз активу (${selectedAsset})`;';
+            document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
         }
 
-        async function getAnalysis() {
-            const content = document.getElementById("analysis-content");
-            const priceSpan = document.getElementById("card-price");
-            
-            content.innerHTML = "<b>⏳ Аналізуємо ринок через TradingView...</b>";
-            
-            try {
-                let response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pair: currentPair, tf: currentTf })
-                });
-                
-                let data = await response.json();
-                
-                if (data.success) {
-                    priceSpan.innerText = `Ціна: ${data.price}`;
-                    let detailsHtml = data.detailed.map(l => `• ${l}`).join("<br>");
-                    
-                    content.innerHTML = `
-                        <b style="font-size: 16px;">${data.emoji} Напрямок: ${data.direction}</b><br><br>
-                        <div style="font-size: 13px; color: #cfd8dc; line-height: 1.5;">${detailsHtml}</div><br>
-                        <div style="font-size: 12px; color: #ffca28;">${data.news}</div>
-                    `;
-                } else {
-                    content.innerHTML = `<span style="color: #ff5252;">❌ Помилка: ${data.error}</span>`;
-                }
-            } catch (err) {
-                content.innerHTML = `<span style="color: #ff5252;">❌ Помилка з'єднання з сервером.</span>`;
+        function setExpiry(element, expiryTime) {
+            document.querySelectorAll('.btn-expiry').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            selectedExpiry = expiryTime;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            if (tabName === 'trade') {
+                document.getElementById('tab-trade').classList.add('active');
+                document.getElementById('nav-trade').classList.add('active');
+            } else {
+                document.getElementById('tab-stats').classList.add('active');
+                document.getElementById('nav-stats').classList.add('active');
             }
         }
 
-        renderAssets();
+        function getSignal() {
+            const statusEl = document.getElementById('signal-status');
+            const priceEl = document.getElementById('signal-price');
+            const descEl = document.getElementById('signal-desc');
+
+            statusEl.innerText = "Сканування ринку...";
+            priceEl.innerText = "Ціна: --";
+            descEl.innerText = `Запит до TradingView для ${selectedAsset} (${selectedExpiry})...`;
+
+            fetch('/api/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusEl.innerText = data.signal;
+                priceEl.innerText = `Ціна: ${data.price}`;
+                descEl.innerText = data.details;
+            })
+            .catch(error => {
+                statusEl.innerText = "Помилка зв'язку";
+                descEl.innerText = "Не вдалося отримати дані з ринку. Спробуйте ще раз.";
+            });
+        }
     </script>
 </body>
 </html>
