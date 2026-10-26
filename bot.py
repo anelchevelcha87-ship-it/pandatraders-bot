@@ -62,8 +62,13 @@ def get_signal():
         higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
+        
         candle_is_green = current_price > open_price
         candle_is_red = current_price < open_price
+
+        # Детальна оцінка ринку для розгорнутого виводу думки бота
+        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "нормальна зона")
+        trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "бічний/нейтральний")
 
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
             signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
@@ -76,12 +81,17 @@ def get_signal():
         else:
             signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО"
 
-        details_text = f"Аналіз {symbol}: Ціна {current_price}. RSI: {rsi}. Тренд 15м: {higher_rec}. Рекомендація: {recommendation}."
+        details_text = (
+            f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
+            f"Тренд 15хв: {trend_desc}. "
+            f"Індикатори дають сигнал '{recommendation}'. "
+            f"Рішення сформовано на основі імпульсу свічки та загального тренду."
+        )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
 
     except Exception as e:
-        return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Затримка шлюзу, спробуйте ще раз."})
+        return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Затримка шлюзу або ринок закритий для цього активу."})
 
 @app.route('/api/stats/get', methods=['POST'])
 def get_stats():
@@ -133,4 +143,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-        
+    
