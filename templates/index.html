@@ -18,7 +18,18 @@
         .btn-expiry.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
         .btn-signal { width: 100%; background: #2ecc71; color: #0e1621; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
         .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
-        .analysis-desc { font-size: 12px; color: #899bb1; line-height: 1.4; }
+        .analysis-desc { font-size: 12px; color: #899bb1; line-height: 1.4; margin-top: 6px; }
+        
+        /* Таймер та блок результату */
+        .timer-card { background: #17212b; border: 1px solid #2b3847; border-radius: 12px; padding: 12px; margin-bottom: 14px; text-align: center; display: none; }
+        .timer-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; margin-bottom: 4px; }
+        .timer-countdown { font-size: 24px; font-weight: 700; color: #2ecc71; letter-spacing: 1px; }
+        
+        .result-box { display: none; margin-top: 10px; background: #232e3c; padding: 10px; border-radius: 8px; }
+        .result-btns { display: flex; gap: 8px; margin-top: 8px; }
+        .btn-win { flex: 1; background: #1e4620; border: 1px solid #2ecc71; color: #2ecc71; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-loss { flex: 1; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
         .assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 12px 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
         .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
@@ -40,11 +51,11 @@
         <div class="section-title">Час експірації</div>
         <div class="card">
             <div class="expiry-grid">
-                <button class="btn-expiry active" data-expiry="1 хв">1 хв</button>
-                <button class="btn-expiry" data-expiry="5 хв">5 хв</button>
-                <button class="btn-expiry" data-expiry="15 хв">15 хв</button>
-                <button class="btn-expiry" data-expiry="30 хв">30 хв</button>
-                <button class="btn-expiry" data-expiry="1 год">1 год</button>
+                <button class="btn-expiry active" data-expiry="1 хв" data-sec="60">1 хв</button>
+                <button class="btn-expiry" data-expiry="5 хв" data-sec="300">5 хв</button>
+                <button class="btn-expiry" data-expiry="15 хв" data-sec="900">15 хв</button>
+                <button class="btn-expiry" data-expiry="30 хв" data-sec="1800">30 хв</button>
+                <button class="btn-expiry" data-expiry="1 год" data-sec="3600">1 год</button>
             </div>
         </div>
 
@@ -58,6 +69,20 @@
             </div>
             <div class="analysis-desc" id="signal-desc">
                 Натисніть кнопку вище для запуску технічного сканування рівня EMA 50, RSI та ринку.
+            </div>
+        </div>
+
+        <!-- Блок таймера експірації -->
+        <div class="timer-card" id="timer-card">
+            <div class="timer-title" id="timer-title-text">Угода в процесі експірації</div>
+            <div class="timer-countdown" id="countdown">00:00</div>
+            
+            <div class="result-box" id="result-box">
+                <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Час вийшов! Яким був результат угоди?</div>
+                <div class="result-btns">
+                    <button class="btn-win" onclick="recordResult('win')">✅ ПЛЮС</button>
+                    <button class="btn-loss" onclick="recordResult('loss')">❌ МІНУС</button>
+                </div>
             </div>
         </div>
 
@@ -83,14 +108,16 @@
         </div>
     </div>
 
+    <!-- Вкладка статистики -->
     <div id="tab-stats" class="tab-content">
         <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ</span></div>
         <div class="card">
-            <div class="analysis-header">Статистика сигналів:</div>
-            <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #2ecc71;">
-                ✅ Прохідність (WinRate): <b>89.1%</b><br>
-                📈 Сканувань через API: <b>Ретайм-моніторинг</b><br>
-                ⭐️ Статус: <b>Підключено до TradingView</b>
+            <div class="analysis-header">Статистика ваших сигналів:</div>
+            <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #ffffff;" id="stats-content">
+                ✅ Успішних (Плюс): <b style="color: #2ecc71;" id="stat-wins">0</b><br>
+                ❌ Невдалих (Мінус): <b style="color: #e74c3c;" id="stat-losses">0</b><br>
+                📈 Прохідність (WinRate): <b style="color: #2ecc71;" id="stat-winrate">0%</b><br>
+                ⭐️ Всього угод: <b id="stat-total">0</b>
             </div>
         </div>
     </div>
@@ -103,12 +130,16 @@
     <script>
         let selectedAsset = 'GBPUSD';
         let selectedExpiry = '1 хв';
-        
+        let selectedSeconds = 60;
+        let timerInterval = null;
+
+        // Статистика
+        let stats = { wins: 0, losses: 0 };
+
         const tg = window.Telegram.WebApp;
         tg.expand();
         if (tg.ready) tg.ready();
 
-        // Обробка вибору активів
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
@@ -118,16 +149,15 @@
             });
         });
 
-        // Обробка вибору експірації
         document.querySelectorAll('.btn-expiry').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-expiry').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedExpiry = this.getAttribute('data-expiry');
+                selectedSeconds = parseInt(this.getAttribute('data-sec'));
             });
         });
 
-        // Перемикання вкладок нижньої панелі
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const tabName = this.getAttribute('data-tab');
@@ -144,15 +174,23 @@
             });
         });
 
-        // Кнопка запиту сигналу
+        // Запит сигналу та запуск таймера
         document.getElementById('btn-get-signal').addEventListener('click', function() {
             const statusEl = document.getElementById('signal-status');
             const priceEl = document.getElementById('signal-price');
             const descEl = document.getElementById('signal-desc');
+            const timerCard = document.getElementById('timer-card');
+            const resultBox = document.getElementById('result-box');
+            const countdownEl = document.getElementById('countdown');
 
             statusEl.innerText = "Сканування ринку...";
             priceEl.innerText = "Ціна: --";
-            descEl.innerText = `Запит до TradingView для ${selectedAsset} (${selectedExpiry})...`;
+            descEl.innerText = `Аналіз індикаторів EMA 50, RSI та MACD для ${selectedAsset}...`;
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerCard.style.display = 'block';
+            resultBox.style.display = 'none';
+            countdownEl.style.display = 'block';
 
             fetch('/api/signal', {
                 method: 'POST',
@@ -162,14 +200,63 @@
             .then(response => response.json())
             .then(data => {
                 statusEl.innerText = data.signal;
-                priceEl.innerText = `Ціна: ${data.price}`;
+                priceEl.innerText = `Ціна входу: ${data.price}`;
                 descEl.innerText = data.details;
+
+                // Запуск таймера зворотного відліку
+                startTimer(selectedSeconds);
             })
             .catch(error => {
                 statusEl.innerText = "Помилка зв'язку";
                 descEl.innerText = "Не вдалося отримати дані з ринку. Спробуйте ще раз.";
+                timerCard.style.display = 'none';
             });
         });
+
+        function startTimer(duration) {
+            let timer = duration;
+            const countdownEl = document.getElementById('countdown');
+            const resultBox = document.getElementById('result-box');
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            timerInterval = setInterval(function () {
+                let minutes = Math.floor(timer / 60);
+                let seconds = timer % 60;
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                countdownEl.innerText = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(timerInterval);
+                    countdownEl.style.display = 'none';
+                    resultBox.style.display = 'block'; // Показ кнопок запиту профіту/збитку
+                }
+            }, 1000);
+        }
+
+        function recordResult(type) {
+            if (type === 'win') {
+                stats.wins++;
+            } else {
+                stats.losses++;
+            }
+
+            // Оновлення статистики на екрані
+            document.getElementById('stat-wins').innerText = stats.wins;
+            document.getElementById('stat-losses').innerText = stats.losses;
+            
+            let total = stats.wins + stats.losses;
+            document.getElementById('stat-total').innerText = total;
+
+            let winRate = total > 0 ? Math.round((stats.wins / total) * 100) : 0;
+            document.getElementById('stat-winrate').innerText = winRate + '%';
+
+            // Ховаємо блок таймера до наступного сигналу
+            document.getElementById('timer-card').style.display = 'none';
+        }
     </script>
 </body>
 </html>
