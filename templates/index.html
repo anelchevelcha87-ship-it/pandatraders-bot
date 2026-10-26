@@ -73,7 +73,7 @@
                 <span id="signal-price" style="color: #899bb1; font-size: 13px;">Ціна: --</span>
             </div>
             <div class="analysis-desc" id="signal-desc">
-                Сканування рівнів RSI, MACD, Bollinger Bands та тренду старших таймфреймів...
+                Оберіть актив та натисніть кнопку отримання аналізу для підвантаження реальних котирувань...
             </div>
         </div>
 
@@ -166,6 +166,48 @@
         }
         loadStats();
 
+        // Функція запиту аналізу на сервер
+        function fetchSignalData() {
+            loadNewsStatus();
+            const statusEl = document.getElementById('signal-status');
+            const priceEl = document.getElementById('signal-price');
+            const descEl = document.getElementById('signal-desc');
+            const timerCard = document.getElementById('timer-card');
+            const resultBox = document.getElementById('result-box');
+            const countdownEl = document.getElementById('countdown');
+
+            statusEl.innerText = "Оновлення котирувань...";
+            priceEl.innerText = "Ціна: --";
+            descEl.innerText = `Збір актуальних даних для ${selectedAsset} (${selectedExpiry})...`;
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerCard.style.display = 'block';
+            resultBox.style.display = 'none';
+            countdownEl.style.display = 'block';
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            fetch('/api/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusEl.innerText = data.signal;
+                priceEl.innerText = `Ціна: ${data.price}`;
+                descEl.innerText = data.details;
+
+                startTimer(selectedSeconds);
+            })
+            .catch(error => {
+                statusEl.innerText = "⚠️ ПОМИЛКА";
+                descEl.innerText = "Не вдалося отримати ринкові дані.";
+                timerCard.style.display = 'none';
+            });
+        }
+
+        // При кліку на актив — одразу оновлюємо дані по новій парі
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
@@ -173,6 +215,9 @@
                 selectedAsset = this.getAttribute('data-asset');
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
                 if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                
+                // Автоматичний запит свіжої ціни при зміні пари
+                fetchSignalData();
             });
         });
 
@@ -203,45 +248,8 @@
             });
         });
 
-        document.getElementById('btn-get-signal').addEventListener('click', function() {
-            loadNewsStatus();
-            const statusEl = document.getElementById('signal-status');
-            const priceEl = document.getElementById('signal-price');
-            const descEl = document.getElementById('signal-desc');
-            const timerCard = document.getElementById('timer-card');
-            const resultBox = document.getElementById('result-box');
-            const countdownEl = document.getElementById('countdown');
-
-            statusEl.innerText = "Мультитаймфрейм сканування...";
-            priceEl.innerText = "Ціна: --";
-            descEl.innerText = `Збір даних RSI, MACD, Bollinger та тренду 15м для ${selectedAsset}...`;
-
-            if (timerInterval) clearInterval(timerInterval);
-            timerCard.style.display = 'block';
-            resultBox.style.display = 'none';
-            countdownEl.style.display = 'block';
-
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
-            fetch('/api/signal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusEl.innerText = data.signal;
-                priceEl.innerText = `Ціна: ${data.price}`;
-                descEl.innerText = data.details;
-
-                startTimer(selectedSeconds);
-            })
-            .catch(error => {
-                statusEl.innerText = "⚠️ ПОМИЛКА";
-                descEl.innerText = "Не вдалося отримати ринкові дані.";
-                timerCard.style.display = 'none';
-            });
-        });
+        // Кнопка примусового оновлення аналізу
+        document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
 
         function startTimer(duration) {
             let timer = duration;
