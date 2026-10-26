@@ -35,9 +35,12 @@
         .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
         
         .btn-reset { width: 100%; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        .btn-scanner { width: 100%; background: #3498db; color: #ffffff; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
+
+        .scanner-item { background: #232e3c; padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
 
         .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #17212b; display: flex; padding: 8px 12px; gap: 8px; border-top: 1px solid #232e3c; z-index: 100; }
-        .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+        .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; }
         .nav-btn.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -45,6 +48,7 @@
 </head>
 <body>
 
+    <!-- Вкладка 1: Торгівля -->
     <div id="tab-trade" class="tab-content active">
         <div class="header">
             <span>🐼 PANDATRADERS PRO</span>
@@ -123,8 +127,9 @@
         </div>
     </div>
 
+    <!-- Вкладка 2: Статистика -->
     <div id="tab-stats" class="tab-content">
-        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ (БАЗА)</span></div>
+        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ</span></div>
         <div class="card">
             <div class="analysis-header">Ваша постійна історія:</div>
             <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #ffffff;" id="stats-content">
@@ -137,9 +142,23 @@
         </div>
     </div>
 
+    <!-- Вкладка 3: Автопошук (сканер) -->
+    <div id="tab-scanner" class="tab-content">
+        <div class="header"><span>🤖 ЖИВИЙ АВТОПОШУК</span></div>
+        <button class="btn-scanner" id="btn-run-scanner">⚡ ЗАПУСТИТИ АВТОСКАНЕР</button>
+        <div class="card">
+            <div class="section-title" style="text-align: left; margin-bottom: 8px;">Знайдені вигідні сигнали:</div>
+            <div id="scanner-results" style="font-size: 13px; color: #899bb1;">
+                Натисніть кнопку вище, щоб бот просканував усі активи та знайшов найкращі точки входу...
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижня навігація -->
     <div class="nav-bar">
         <button class="nav-btn active" id="nav-trade" data-tab="trade">🟢 ТОРГІВЛЯ</button>
         <button class="nav-btn" id="nav-stats" data-tab="stats">📊 СТАТИСТИКА</button>
+        <button class="nav-btn" id="nav-scanner" data-tab="scanner">🤖 АВТОПОШУК</button>
     </div>
 
     <script>
@@ -152,7 +171,6 @@
         tg.expand();
         if (tg.ready) tg.ready();
 
-        // Надійна фіксація користувача через Telegram ID або збережений локальний ID
         let userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
         if (!userId) {
             userId = localStorage.getItem('panda_user_id');
@@ -257,15 +275,49 @@
                 if (tabName === 'trade') {
                     document.getElementById('tab-trade').classList.add('active');
                     document.getElementById('nav-trade').classList.add('active');
-                } else {
+                } else if (tabName === 'stats') {
                     document.getElementById('tab-stats').classList.add('active');
                     document.getElementById('nav-stats').classList.add('active');
+                } else if (tabName === 'scanner') {
+                    document.getElementById('tab-scanner').classList.add('active');
+                    document.getElementById('nav-scanner').classList.add('active');
                 }
                 if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             });
         });
 
         document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
+
+        // Логіка автосканера
+        document.getElementById('btn-run-scanner').addEventListener('click', function() {
+            const scannerRes = document.getElementById('scanner-results');
+            scannerRes.innerHTML = "⏳ Сканування ринку (перевірка 23 активів)...";
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            fetch('/api/scanner')
+            .then(res => res.json())
+            .then(data => {
+                if (data.signals && data.signals.length > 0) {
+                    let html = '';
+                    data.signals.forEach(sig => {
+                        let color = sig.type === 'buy' ? '#2ecc71' : '#e74c3c';
+                        html += `
+                            <div class="scanner-item">
+                                <div><b>${sig.symbol}</b><br><span style="color: #899bb1; font-size: 11px;">Ціна: ${sig.price}</span></div>
+                                <div style="color: ${color}; font-weight: 700; text-align: right;">${sig.action}</div>
+                            </div>
+                        `;
+                    });
+                    scannerRes.innerHTML = html;
+                } else {
+                    scannerRes.innerHTML = "ℹ️ Зараз немає ідеальних умов по активу. Спробуйте ще раз за хвилину.";
+                }
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            })
+            .catch(err => {
+                scannerRes.innerHTML = "⚠️ Помилка сканування ринку.";
+            });
+        });
 
         function startTimer(durationInSeconds) {
             const countdownEl = document.getElementById('countdown');
@@ -313,28 +365,4 @@
         function resetStats() {
             if (confirm("Ви дійсно хочете скинути всю статистику?")) {
                 fetch('/api/stats/reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    updateStatsUI(data.wins, data.losses);
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
-                });
-            }
-        }
-
-        function updateStatsUI(wins, losses) {
-            document.getElementById('stat-wins').innerText = wins;
-            document.getElementById('stat-losses').innerText = losses;
-            
-            let total = wins + losses;
-            document.getElementById('stat-total').innerText = total;
-
-            let winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-            document.getElementById('stat-winrate').innerText = winRate + '%';
-        }
-    </script>
-</body>
-</html>
+        
