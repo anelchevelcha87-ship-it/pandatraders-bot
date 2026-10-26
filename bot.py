@@ -8,14 +8,22 @@ from dotenv import load_dotenv
 import telebot
 from telebot import types
 from tradingview_ta import Interval, TA_Handler
+from flask import Flask
 
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise ValueError("❌ BOT_TOKEN не знайдено. Створи файл .env і додай туди токен.")
+    raise ValueError("❌ BOT_TOKEN не знайдено. Створіть файл .env і додай туди токен.")
 
 bot = telebot.TeleBot(TOKEN)
+
+# ====================== ВЕБ-СЕРВЕР ДЛЯ RENDER ======================
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "🐼 Pandatraders Pro Bot is running!"
 
 # ====================== НАЛАШТУВАННЯ ======================
 STATS_FILE = Path("stats.json")
@@ -331,4 +339,11 @@ def handle_result(call):
 # ====================== ЗАПУСК ======================
 if __name__ == "__main__":
     print("🐼 PANDATRADERS PRO бот запущено!")
+    
+    # Запускаємо вебсервер у фоновому потоці для Render
+    port = int(os.environ.get("PORT", 10000))
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port), daemon=True).start()
+    
+    # Запуск бота
     bot.infinity_polling()
+                
