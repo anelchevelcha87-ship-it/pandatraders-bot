@@ -30,7 +30,6 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-# Тільки надійні Forex пари та золото (без криптовалют)
 STABLE_ASSETS = [
     'GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 
     'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 
@@ -131,7 +130,6 @@ def get_signal():
 @app.route('/api/scanner', methods=['GET'])
 def run_scanner():
     results = []
-    # Швидкий перебір стабільних форекс пар
     for symbol in STABLE_ASSETS:
         try:
             screener, exchange = get_exchange_and_screener(symbol)
@@ -200,4 +198,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-            
+    
