@@ -30,12 +30,8 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-STABLE_ASSETS = [
-    'GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 
-    'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 
-    'EURAUD', 'CADCHF', 'EURCHF', 'GBPCAD', 'CADJPY', 
-    'AUDCAD', 'AUDCHF', 'AUDJPY', 'GBPAUD', 'XAUUSD'
-]
+# Тільки ключові активи для швидкого і стабільного автопошуку без зависань
+FAST_SCAN_ASSETS = ['GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'XAUUSD']
 
 def get_exchange_and_screener(symbol):
     symbol = symbol.upper()
@@ -43,30 +39,9 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
-def check_news_volatility():
-    try:
-        kiev_tz = pytz.timezone('Europe/Kiev')
-        now = datetime.now(kiev_tz)
-        hour = now.hour
-        minute = now.minute
-        
-        if (hour == 15 and 25 <= minute <= 45) or (hour == 17 and 0 <= minute <= 20):
-            return "🔴 Увага: висока волатильність (Вихід новин!)", True
-        elif hour < 8 or hour > 21:
-            return "🟡 Нічна сесія: низька ліквідність", False
-        else:
-            return "🟢 Ринки стабільні", False
-    except Exception:
-        return "🟢 Ринки стабільні", False
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/api/news-status', methods=['GET'])
-def news_status():
-    status_text, is_danger = check_news_volatility()
-    return jsonify({'status': status_text, 'danger': is_danger})
 
 @app.route('/api/signal', methods=['POST'])
 def get_signal():
@@ -76,8 +51,6 @@ def get_signal():
 
     screener, exchange = get_exchange_and_screener(symbol)
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_1_MINUTE)
-    
-    news_text, is_danger = check_news_volatility()
 
     try:
         handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
@@ -92,50 +65,36 @@ def get_signal():
         higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
-        ema50 = analysis.indicators.get("EMA50", current_price)
-        macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
-        macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
-        bb_upper = round(analysis.indicators.get("BB.upper", current_price * 1.01), 5)
-        bb_lower = round(analysis.indicators.get("BB.lower", current_price * 0.99), 5)
-
         candle_is_green = current_price > open_price
         candle_is_red = current_price < open_price
 
         if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
         elif "BUY" in recommendation:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🟢 📈 ВГОРУ (CALL)"
+            signal_text = "🟢 📈 ВГОРУ (CALL)"
         elif "SELL" in recommendation:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: РЕКОМЕНДОВАНО ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔴 📉 ВНИЗ (PUT)"
+            signal_text = "🔴 📉 ВНИЗ (PUT)"
         else:
-            signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО (ОЧІКУВАННЯ)"
+            signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО"
 
-        macd_trend = "бичачий перетин" if macd_val > macd_signal else "ведмежий імпульс"
-        rsi_desc = f"RSI ~{rsi}, ціна біля межі Bollinger." if (rsi < 40 or rsi > 60) else f"RSI нейтральний ({rsi})."
-        warning_note = " ⚠️ Увага: ринок під впливом новинного фону!" if is_danger else ""
-
-        details_text = (
-            f"Мультитаймфрейм-аналіз {symbol}: Ціна {current_price}. {rsi_desc} "
-            f"MACD: {macd_trend}. Тренд 15м: {higher_rec}. Рекомендація: {recommendation}.{warning_note}"
-        )
+        details_text = f"Аналіз {symbol}: Ціна {current_price}. RSI: {rsi}. Тренд 15м: {higher_rec}. Рекомендація: {recommendation}."
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
 
     except Exception as e:
-        print(f"Помилка: {e}")
-        return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Тимчасова затримка шлюзу, спробуйте ще раз."})
+        return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Затримка шлюзу, спробуйте ще раз."})
 
 @app.route('/api/scanner', methods=['GET'])
 def run_scanner():
     results = []
-    for symbol in STABLE_ASSETS:
+    # Швидке опитування основних пар замість 20+ важких запитів
+    for symbol in FAST_SCAN_ASSETS:
         try:
             screener, exchange = get_exchange_and_screener(symbol)
             handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_1_MINUTE)
             analysis = handler.get_analysis()
-            
             recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
             current_price = round(analysis.indicators.get("close", 0.0), 5)
 
@@ -198,4 +157,3 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
