@@ -56,8 +56,8 @@
         </div>
 
         <div class="volatility-banner">
-            <span>📊 Новинний фон:</span>
-            <span id="news-status-text" style="color: #2ecc71; font-weight: 600;">Перевірка...</span>
+            <span>📊 Статус ринку:</span>
+            <span style="color: #2ecc71; font-weight: 600;">🟢 Готовий до роботи</span>
         </div>
 
         <div class="section-title">Час експірації</div>
@@ -91,8 +91,8 @@
             <div class="result-box" id="result-box">
                 <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Час вийшов! Яким був результат?</div>
                 <div class="result-btns">
-                    <button class="btn-win" onclick="recordResult('win')">✅ ПЛЮС</button>
-                    <button class="btn-loss" onclick="recordResult('loss')">❌ МІНУС</button>
+                    <button class="btn-win" id="btn-win">✅ ПЛЮС</button>
+                    <button class="btn-loss" id="btn-loss">❌ МІНУС</button>
                 </div>
             </div>
         </div>
@@ -135,18 +135,18 @@
                 📈 Прохідність (WinRate): <b style="color: #2ecc71;" id="stat-winrate">0%</b><br>
                 ⭐️ Всього угод: <b id="stat-total">0</b>
             </div>
-            <button class="btn-reset" onclick="resetStats()">🔄 СКИНУТИ СТАТИСТИКУ</button>
+            <button class="btn-reset" id="btn-reset">🔄 СКИНУТИ СТАТИСТИКУ</button>
         </div>
     </div>
 
-    <!-- Вкладка 3: Автопошук (сканер) -->
+    <!-- Вкладка 3: Автопошук -->
     <div id="tab-scanner" class="tab-content">
         <div class="header"><span>🤖 ЖИВИЙ АВТОПОШУК</span></div>
         <button class="btn-scanner" id="btn-run-scanner">⚡ ЗАПУСТИТИ АВТОСКАНЕР</button>
         <div class="card">
             <div class="section-title" style="text-align: left; margin-bottom: 8px;">Знайдені вигідні сигнали:</div>
             <div id="scanner-results" style="font-size: 13px; color: #899bb1;">
-                Натисніть кнопку вище, щоб бот просканував усі активи та знайшов найкращі точки входу...
+                Натисніть кнопку вище, щоб бот просканував активи та знайшов найкращі точки входу...
             </div>
         </div>
     </div>
@@ -165,8 +165,10 @@
         let timerInterval = null;
 
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        if (tg.ready) tg.ready();
+        try {
+            tg.expand();
+            if (tg.ready) tg.ready();
+        } catch(e) {}
 
         let userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
         if (!userId) {
@@ -179,17 +181,6 @@
             userId = String(userId);
         }
 
-        function loadNewsStatus() {
-            fetch('/api/news-status')
-            .then(res => res.json())
-            .then(data => {
-                const el = document.getElementById('news-status-text');
-                el.innerText = data.status;
-                el.style.color = data.danger ? '#e74c3c' : '#2ecc71';
-            });
-        }
-        loadNewsStatus();
-
         function loadStats() {
             fetch('/api/stats/get', {
                 method: 'POST',
@@ -199,70 +190,34 @@
             .then(res => res.json())
             .then(data => {
                 updateStatsUI(data.wins, data.losses);
-            });
+            })
+            .catch(err => console.log("Stats error"));
         }
         loadStats();
 
-        function fetchSignalData() {
-            loadNewsStatus();
-            const statusEl = document.getElementById('signal-status');
-            const priceEl = document.getElementById('signal-price');
-            const descEl = document.getElementById('signal-desc');
-            const timerCard = document.getElementById('timer-card');
-            const resultBox = document.getElementById('result-box');
-            const countdownEl = document.getElementById('countdown');
-
-            statusEl.innerText = "Оновлення котирувань...";
-            priceEl.innerText = "Ціна: --";
-            descEl.innerText = `Збір актуальних даних для ${selectedAsset} (${selectedExpiry})...`;
-
-            if (timerInterval) clearInterval(timerInterval);
-            timerCard.style.display = 'block';
-            resultBox.style.display = 'none';
-            countdownEl.style.display = 'block';
-
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-
-            fetch('/api/signal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusEl.innerText = data.signal;
-                priceEl.innerText = `Ціна: ${data.price}`;
-                descEl.innerText = data.details;
-
-                startTimer(selectedSeconds);
-            })
-            .catch(error => {
-                statusEl.innerText = "⚠️ ПОМИЛКА";
-                descEl.innerText = "Не вдалося отримати ринкові дані.";
-                timerCard.style.display = 'none';
-            });
-        }
-
+        // Обробники подій для кнопок активів
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedAsset = this.getAttribute('data-asset');
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
-                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                try { if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e) {}
             });
         });
 
+        // Обробники для часу експірації
         document.querySelectorAll('.btn-expiry').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-expiry').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedExpiry = this.getAttribute('data-expiry');
                 selectedSeconds = parseInt(this.getAttribute('data-sec'));
-                if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                try { if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e) {}
             });
         });
 
+        // Навігація між вкладками
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const tabName = this.getAttribute('data-tab');
@@ -279,16 +234,54 @@
                     document.getElementById('tab-scanner').classList.add('active');
                     document.getElementById('nav-scanner').classList.add('active');
                 }
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
             });
         });
 
-        document.getElementById('btn-get-signal').addEventListener('click', fetchSignalData);
+        // Кнопка отримання аналізу
+        document.getElementById('btn-get-signal').addEventListener('click', function() {
+            const statusEl = document.getElementById('signal-status');
+            const priceEl = document.getElementById('signal-price');
+            const descEl = document.getElementById('signal-desc');
+            const timerCard = document.getElementById('timer-card');
+            const resultBox = document.getElementById('result-box');
+            const countdownEl = document.getElementById('countdown');
 
+            statusEl.innerText = "Оновлення котирувань...";
+            priceEl.innerText = "Ціна: --";
+            descEl.innerText = `Збір актуальних даних для ${selectedAsset} (${selectedExpiry})...`;
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerCard.style.display = 'block';
+            resultBox.style.display = 'none';
+            countdownEl.style.display = 'block';
+
+            try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
+
+            fetch('/api/signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusEl.innerText = data.signal;
+                priceEl.innerText = `Ціна: ${data.price}`;
+                descEl.innerText = data.details;
+                startTimer(selectedSeconds);
+            })
+            .catch(error => {
+                statusEl.innerText = "⚠️ ПОМИЛКА";
+                descEl.innerText = "Не вдалося отримати ринкові дані.";
+                timerCard.style.display = 'none';
+            });
+        });
+
+        // Кнопка автосканера
         document.getElementById('btn-run-scanner').addEventListener('click', function() {
             const scannerRes = document.getElementById('scanner-results');
             scannerRes.innerHTML = "⏳ Сканування ринку (форекс та золото)...";
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
 
             fetch('/api/scanner')
             .then(res => res.json())
@@ -308,7 +301,7 @@
                 } else {
                     scannerRes.innerHTML = "ℹ️ Зараз немає ідеальних умов по активу. Спробуйте ще раз за хвилину.";
                 }
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
             })
             .catch(err => {
                 scannerRes.innerHTML = "⚠️ Помилка сканування ринку.";
@@ -339,10 +332,14 @@
                     clearInterval(timerInterval);
                     countdownEl.style.display = 'none';
                     resultBox.style.display = 'block';
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
                 }
             }, 1000);
         }
+
+        // Кнопки результатів (Плюс / Мінус)
+        document.getElementById('btn-win').addEventListener('click', function() { recordResult('win'); });
+        document.getElementById('btn-loss').addEventListener('click', function() { recordResult('loss'); });
 
         function recordResult(type) {
             fetch('/api/stats/update', {
@@ -354,17 +351,11 @@
             .then(data => {
                 updateStatsUI(data.wins, data.losses);
                 document.getElementById('timer-card').style.display = 'none';
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+                try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy'); } catch(e) {}
             });
         }
 
-        function resetStats() {
+        // Кнопка скидання статистики
+        document.getElementById('btn-reset').addEventListener('click', function() {
             if (confirm("Ви дійсно хочете скинути всю статистику?")) {
-                fetch('/api/stats/reset', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                })
-                .then(res => res.json())
-                .then(data => {
-             
+                fetch('/api/stats/res
