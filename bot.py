@@ -30,9 +30,6 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-# Тільки ключові активи для швидкого і стабільного автопошуку без зависань
-FAST_SCAN_ASSETS = ['GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'XAUUSD']
-
 def get_exchange_and_screener(symbol):
     symbol = symbol.upper()
     if symbol == 'XAUUSD':
@@ -86,27 +83,6 @@ def get_signal():
     except Exception as e:
         return jsonify({'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 'price': "--", 'details': "Затримка шлюзу, спробуйте ще раз."})
 
-@app.route('/api/scanner', methods=['GET'])
-def run_scanner():
-    results = []
-    # Швидке опитування основних пар замість 20+ важких запитів
-    for symbol in FAST_SCAN_ASSETS:
-        try:
-            screener, exchange = get_exchange_and_screener(symbol)
-            handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_1_MINUTE)
-            analysis = handler.get_analysis()
-            recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
-            current_price = round(analysis.indicators.get("close", 0.0), 5)
-
-            if "BUY" in recommendation:
-                results.append({'symbol': symbol, 'action': '📈 ВГОРУ (CALL)', 'type': 'buy', 'price': current_price})
-            elif "SELL" in recommendation:
-                results.append({'symbol': symbol, 'action': '📉 ВНИЗ (PUT)', 'type': 'sell', 'price': current_price})
-        except Exception:
-            continue
-            
-    return jsonify({'signals': results})
-
 @app.route('/api/stats/get', methods=['POST'])
 def get_stats():
     data = request.get_json() or {}
@@ -157,3 +133,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+        
