@@ -189,6 +189,18 @@ def update_stats():
     conn.close()
     return jsonify({'wins': wins, 'losses': losses})
 
+@app.route('/api/stats/reset', methods=['POST'])
+def reset_stats():
+    data = request.get_json() or {}
+    user_id = str(data.get('user_id', 'default_user'))
+    
+    conn = sqlite3.connect('trading_stats.db')
+    cursor = conn.cursor()
+    cursor.execute('UPDATE stats SET wins = 0, losses = 0 WHERE user_id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'wins': 0, 'losses': 0})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
