@@ -164,21 +164,24 @@
         let selectedSeconds = 60;
         let timerInterval = null;
 
-        const tg = window.Telegram.WebApp;
+        let userId = 'default_user';
         try {
-            tg.expand();
-            if (tg.ready) tg.ready();
+            const tg = window.Telegram.WebApp;
+            if (tg) {
+                tg.expand();
+                if (tg.ready) tg.ready();
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+                    userId = String(tg.initDataUnsafe.user.id);
+                }
+            }
         } catch(e) {}
 
-        let userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-        if (!userId) {
+        if (userId === 'default_user') {
             userId = localStorage.getItem('panda_user_id');
             if (!userId) {
                 userId = 'user_' + Math.random().toString(36).substring(2, 11);
                 localStorage.setItem('panda_user_id', userId);
             }
-        } else {
-            userId = String(userId);
         }
 
         function loadStats() {
@@ -191,33 +194,31 @@
             .then(data => {
                 updateStatsUI(data.wins, data.losses);
             })
-            .catch(err => console.log("Stats error"));
+            .catch(err => {});
         }
         loadStats();
 
-        // Обробники подій для кнопок активів
+        // Вибір активу
         document.querySelectorAll('.btn-asset').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedAsset = this.getAttribute('data-asset');
                 document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
-                try { if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e) {}
             });
         });
 
-        // Обробники для часу експірації
+        // Вибір експірації
         document.querySelectorAll('.btn-expiry').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.btn-expiry').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 selectedExpiry = this.getAttribute('data-expiry');
                 selectedSeconds = parseInt(this.getAttribute('data-sec'));
-                try { if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e) {}
             });
         });
 
-        // Навігація між вкладками
+        // Перемикання вкладок
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const tabName = this.getAttribute('data-tab');
@@ -234,11 +235,10 @@
                     document.getElementById('tab-scanner').classList.add('active');
                     document.getElementById('nav-scanner').classList.add('active');
                 }
-                try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
             });
         });
 
-        // Кнопка отримання аналізу
+        // Запит мульти-аналізу
         document.getElementById('btn-get-signal').addEventListener('click', function() {
             const statusEl = document.getElementById('signal-status');
             const priceEl = document.getElementById('signal-price');
@@ -255,8 +255,6 @@
             timerCard.style.display = 'block';
             resultBox.style.display = 'none';
             countdownEl.style.display = 'block';
-
-            try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
 
             fetch('/api/signal', {
                 method: 'POST',
@@ -277,11 +275,10 @@
             });
         });
 
-        // Кнопка автосканера
+        // Автосканер
         document.getElementById('btn-run-scanner').addEventListener('click', function() {
             const scannerRes = document.getElementById('scanner-results');
             scannerRes.innerHTML = "⏳ Сканування ринку (форекс та золото)...";
-            try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
 
             fetch('/api/scanner')
             .then(res => res.json())
@@ -301,7 +298,6 @@
                 } else {
                     scannerRes.innerHTML = "ℹ️ Зараз немає ідеальних умов по активу. Спробуйте ще раз за хвилину.";
                 }
-                try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
             })
             .catch(err => {
                 scannerRes.innerHTML = "⚠️ Помилка сканування ринку.";
@@ -332,12 +328,10 @@
                     clearInterval(timerInterval);
                     countdownEl.style.display = 'none';
                     resultBox.style.display = 'block';
-                    try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
                 }
             }, 1000);
         }
 
-        // Кнопки результатів (Плюс / Мінус)
         document.getElementById('btn-win').addEventListener('click', function() { recordResult('win'); });
         document.getElementById('btn-loss').addEventListener('click', function() { recordResult('loss'); });
 
@@ -351,11 +345,31 @@
             .then(data => {
                 updateStatsUI(data.wins, data.losses);
                 document.getElementById('timer-card').style.display = 'none';
-                try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy'); } catch(e) {}
             });
         }
 
-        // Кнопка скидання статистики
         document.getElementById('btn-reset').addEventListener('click', function() {
             if (confirm("Ви дійсно хочете скинути всю статистику?")) {
-                fetch('/api/stats/res
+                fetch('/api/stats/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    updateStatsUI(data.wins, data.losses);
+                });
+            }
+        });
+
+        function updateStatsUI(wins, losses) {
+            document.getElementById('stat-wins').innerText = wins;
+            document.getElementById('stat-losses').innerText = losses;
+            
+            let total = wins + losses;
+            document.getElementById('stat-total').innerText = total;
+
+            let winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+            document.getElementById('stat-winrate').innerText = winRate + '%';
+        }
+    </scr
