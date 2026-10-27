@@ -24,7 +24,6 @@ def init_db():
 
 init_db()
 
-# Виправлено: мапимо '10 хв' на безпечний інтервал 5 хвилин, щоб уникнути помилок API
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
     '10 хв': Interval.INTERVAL_5_MINUTES, 
@@ -33,7 +32,6 @@ TIMEFRAME_MAP = {
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-# Простий кеш (60 секунд)
 _cache = {}
 CACHE_TTL = 60
 
@@ -43,11 +41,16 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
+def check_news_alert():
+    now = datetime.now()
+    h, m = now.hour, now.minute
+    if (h == 14 and m >= 30) or (h in [15, 16]) or (h == 17 and m <= 30):
+        return "⚠️ Увага: Час можливого виходу новин (висока волатильність)."
+    return "✅ Новинний фон: Спокійно."
+
 def get_safe_analysis(symbol, screener, exchange, interval, retries=3):
     key = f"{symbol}_{screener}_{exchange}_{interval}"
     now = time.time()
-
-    # Перевірка кешу
     if key in _cache:
         data, timestamp = _cache[key]
         if now - timestamp < CACHE_TTL:
@@ -55,22 +58,15 @@ def get_safe_analysis(symbol, screener, exchange, interval, retries=3):
 
     for attempt in range(retries):
         try:
-            handler = TA_Handler(
-                symbol=symbol,
-                screener=screener,
-                exchange=exchange,
-                interval=interval
-            )
+            handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
             analysis = handler.get_analysis()
             if analysis and analysis.indicators:
                 _cache[key] = (analysis, now)
                 return analysis
         except Exception as e:
             if attempt == retries - 1:
-                print(f"Помилка аналізу {symbol} ({interval}): {e}")
                 return None
-            sleep_time = (attempt + 1) * 1.5 + random.uniform(0.5, 1.0)
-            time.sleep(sleep_time)
+            time.sleep((attempt + 1) * 1.5 + random.uniform(0.5, 1.0))
     return None
 
 def calculate_signal(analysis, higher_15=None):
@@ -97,14 +93,13 @@ def calculate_signal(analysis, higher_15=None):
     if higher_15 and hasattr(higher_15, 'summary'):
         higher_rec = higher_15.summary.get("RECOMMENDATION", "NEUTRAL")
 
-    higher_bull = "BUY" in higher_rec or "STRONG_BUY" in higher_rec
     higher_bear = "SELL" in higher_rec or "STRONG_SELL" in higher_rec
+    higher_bull = "BUY" in higher_rec or "STRONG_BUY" in higher_rec
 
     signal = None
     quality = "Середня"
     reason = []
 
-    # М'якіші умови для стабільної видачі якісних сигналів
     if near_support and is_bull_macd and not higher_bear:
         signal = "CALL"
         quality = "Висока" if strong_trend else "Середня"
@@ -113,7 +108,6 @@ def calculate_signal(analysis, higher_15=None):
         signal = "CALL"
         quality = "Висока" if adx >= 24 else "Середня"
         reason.append("Тренд вгору")
-
     elif near_resistance and is_bear_macd and not higher_bull:
         signal = "PUT"
         quality = "Висока" if strong_trend else "Середня"
@@ -123,8 +117,10 @@ def calculate_signal(analysis, higher_15=None):
         quality = "Висока" if adx >= 24 else "Середня"
         reason.append("Тренд вниз")
 
+    news_status = check_news_alert()
+
     if not signal:
-        return "SKIP", "Низька", f"Флет / Немає чіткого сетапу | RSI: {rsi} | ADX: {adx}"
+        return "⚪️ ⚖️ РИНКОВИЙ ФЛЕТ — УТРИМАТИСЬ", "Низька", f"Флет / Немає сетапу | RSI: {rsi} | {news_status}"
 
     if signal == "CALL":
         emoji = "🔥" if quality == "Висока" else "🟢"
@@ -139,7 +135,7 @@ def calculate_signal(analysis, higher_15=None):
 
     details = (
         f"Ціна: {round(close, 5)} | RSI: {rsi} | Stoch: {stoch_k} | ADX: {adx} | "
-        f"Якість: {quality} | {reason[0]}"
+        f"Якість: {quality} | {reason[0]} | {news_status}"
     )
 
     return text, quality, details
@@ -163,13 +159,11 @@ def get_signal():
             return jsonify({
                 'signal': "⚠️ ПОМИЛКА АНАЛІЗУ",
                 'price': "--",
-                'details': "Служба TradingView тимчасово обмежила доступ. Спробуйте ще раз за 5-10 сек.",
+                'details': "TradingView тимчасово обмежив доступ. Спробуйте через 5-10 сек.",
                 'quality': "Помилка"
             })
 
-        # Коротка пауза для уникнення лімітів шлюзу
         time.sleep(random.uniform(0.4, 0.8))
-
         higher_15 = None
         try:
             higher_15 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=1)
@@ -177,16 +171,7 @@ def get_signal():
             pass
 
         signal_text, quality, details = calculate_signal(analysis, higher_15)
-
         close_price = str(round(analysis.indicators.get("close", 0), 5))
-
-        if signal_text == "SKIP":
-            return jsonify({
-                'signal': "⚪️ ⚖️ РИНКОВИЙ ФЛЕТ — УТРИМАТИСЬ",
-                'price': close_price,
-                'details': details,
-                'quality': quality
-            })
 
         return jsonify({
             'signal': signal_text,
@@ -194,12 +179,11 @@ def get_signal():
             'details': details,
             'quality': quality
         })
-
     except Exception as e:
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ",
             'price': "--",
-            'details': f"Збій обробки. Спробуйте знову. ({str(e)[:35]})",
+            'details': f"Збій: {str(e)[:35]}",
             'quality': "Помилка"
         })
 
@@ -212,7 +196,13 @@ def get_stats():
     cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
     conn.close()
-    return jsonify({'wins': row[0] if row else 0, 'losses': row[1] if row else 0})
+    
+    wins = row[0] if row else 0
+    losses = row[1] if row else 0
+    total = wins + losses
+    winrate = round((wins / total * 100), 1) if total > 0 else 0.0
+
+    return jsonify({'wins': wins, 'losses': losses, 'total': total, 'winrate': winrate})
 
 @app.route('/api/stats/update', methods=['POST'])
 def update_stats():
@@ -227,25 +217,22 @@ def update_stats():
 
     if row:
         wins, losses = row
-        if result_type == 'win':
-            wins += 1
-        else:
-            losses += 1
-        cursor.execute(
-            'UPDATE stats SET wins = ?, losses = ?, last_update = ? WHERE user_id = ?',
-            (wins, losses, datetime.utcnow().isoformat(), user_id)
-        )
+        if result_type == 'win': wins += 1
+        else: losses += 1
+        cursor.execute('UPDATE stats SET wins = ?, losses = ?, last_update = ? WHERE user_id = ?',
+                       (wins, losses, datetime.utcnow().isoformat(), user_id))
     else:
         wins = 1 if result_type == 'win' else 0
         losses = 0 if result_type == 'win' else 1
-        cursor.execute(
-            'INSERT INTO stats (user_id, wins, losses, last_update) VALUES (?, ?, ?, ?)',
-            (user_id, wins, losses, datetime.utcnow().isoformat())
-        )
+        cursor.execute('INSERT INTO stats (user_id, wins, losses, last_update) VALUES (?, ?, ?, ?)',
+                       (user_id, wins, losses, datetime.utcnow().isoformat()))
 
     conn.commit()
     conn.close()
-    return jsonify({'wins': wins, 'losses': losses})
+    
+    total = wins + losses
+    winrate = round((wins / total * 100), 1) if total > 0 else 0.0
+    return jsonify({'wins': wins, 'losses': losses, 'total': total, 'winrate': winrate})
 
 @app.route('/api/stats/reset', methods=['POST'])
 def reset_stats():
@@ -253,13 +240,11 @@ def reset_stats():
     user_id = str(data.get('user_id', 'default_user'))
     conn = sqlite3.connect('trading_stats.db')
     cursor = conn.cursor()
-    cursor.execute(
-        'UPDATE stats SET wins = 0, losses = 0, last_update = ? WHERE user_id = ?',
-        (datetime.utcnow().isoformat(), user_id)
-    )
+    cursor.execute('UPDATE stats SET wins = 0, losses = 0, last_update = ? WHERE user_id = ?',
+                   (datetime.utcnow().isoformat(), user_id))
     conn.commit()
     conn.close()
-    return jsonify({'wins': 0, 'losses': 0})
+    return jsonify({'wins': 0, 'losses': 0, 'total': 0, 'winrate': 0.0})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
