@@ -42,17 +42,17 @@ def index():
 def get_signal():
     data = request.get_json() or {}
     symbol = data.get('symbol', 'GBPUSD')
-    expiry = data.get('expiry', '1 хв')
+    expiry = data.get('expiry', '5 хв')
 
     screener, exchange = get_exchange_and_screener(symbol)
-    interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_1_MINUTE)
+    interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
 
     try:
         # Отримуємо аналіз робочого таймфрейму
         handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
         analysis = handler.get_analysis()
         
-        # Безпечний запит на старший таймфрейм (трендовий фільтр)
+        # Безпечний запит на старший таймфрейм (трендовий фільтр 15 хв)
         higher_rec = "NEUTRAL"
         try:
             higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
@@ -62,40 +62,45 @@ def get_signal():
             pass 
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
-        open_price = round(analysis.indicators.get("open", current_price), 5)
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
+        # Індикатори
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
-        ema10 = round(analysis.indicators.get("EMA10", current_price), 5)
-        ema30 = round(analysis.indicators.get("EMA30", current_price), 5)
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
         
-        # Покращена фільтрація та логіка точності
+        # Стохастик (%K та %D)
+        stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
+        stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
+        
+        # Фільтри та статус
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
         trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
         
-        # Додаткові перевірки для відсіювання хибних сигналів
         is_bullish_macd = macd_val > macd_signal
         is_bearish_macd = macd_val < macd_signal
         
-        # Формування розумного та точного сигналу
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and rsi < 68:
+        # Умови стохастика для входу
+        stoch_bullish_ok = stoch_k < 80 and stoch_k > stoch_d  # Не в перекупленості і лінія K вище D (рух вгору)
+        stoch_bearish_ok = stoch_k > 20 and stoch_k < stoch_d  # Не в перепроданості і лінія K нижче D (рух вниз)
+
+        # Розумна логіка з урахуванням стохастика, MACD та тренду
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and stoch_bullish_ok and rsi < 68:
             signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and rsi > 32:
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and stoch_bearish_ok and rsi > 32:
             signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
-        elif "BUY" in recommendation and rsi < 70:
+        elif "BUY" in recommendation and rsi < 70 and stoch_k < 85:
             signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
-        elif "SELL" in recommendation and rsi > 30:
+        elif "SELL" in recommendation and rsi > 30 and stoch_k > 15:
             signal_text = "🔴 📉 ВНИЗ (PUT - помірний)"
         else:
             signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Тренд 15хв: {trend_desc}. "
-            f"MACD: {'бичачий' if is_bullish_macd else 'ведмежий'} імпульс. "
-            f"Логіка: відсіювання ринкового шуму через комбінацію RSI, MACD та глобального тренду."
+            f"Стохастик: %K={stoch_k}, %D={stoch_d}. "
+            f"Тренд 15хв: {trend_desc} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
+            f"Фільтр: стохастик та імпульс успішно узгоджені."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -104,7 +109,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Тимчасовий ліміт TradingView. Зачекайте хвилину. ({str(e)[:30]})"
+            'details': f"Тимчасовий ліміт шлюзу. Зачекайте хвилину. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
