@@ -14,7 +14,6 @@
             --accent-green: #238636;
             --accent-green-hover: #2ea043;
             --accent-red: #da3633;
-            --accent-blue: #1f6feb;
         }
 
         * {
@@ -78,6 +77,29 @@
             color: var(--text-muted);
             margin-bottom: 4px;
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .market-status-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .market-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #3fb950;
+            font-weight: 600;
         }
 
         .timeframes-grid {
@@ -148,7 +170,7 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 4px;
-            max-height: 145px;
+            max-height: 155px;
             overflow-y: auto;
             padding-right: 2px;
         }
@@ -163,6 +185,7 @@
             border-radius: 4px;
             cursor: pointer;
             text-align: center;
+            text-transform: uppercase;
         }
 
         .asset-btn.active {
@@ -201,8 +224,15 @@
 
     <header>
         <div class="logo">🐼 PANDATRADERS PRO</div>
-        <div class="status-badge" id="connStatus">● Готовий</div>
+        <div class="status-badge" id="connStatus">● MULTI-TA</div>
     </header>
+
+    <div class="market-status-box">
+        <span style="color: var(--text-muted); font-size: 11px;">📊 Статус ринку:</span>
+        <div class="market-status-indicator" id="marketStatusText">
+            <span>●</span> Готовий до роботи
+        </div>
+    </div>
 
     <div class="card">
         <div class="section-title">Час експірації</div>
@@ -221,12 +251,14 @@
         <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
         <div class="analysis-box">
             <div class="signal-title" id="signalOutput">⏳ Очікування вибору...</div>
-            <div class="analysis-details" id="detailsOutput">Оберіть час експірації, актив та натисніть кнопку «Отримати мульті-аналіз».</div>
+            <div class="analysis-details" id="detailsOutput">Оберіть час експірації, пару та натисніть кнопку «Отримати мульті-аналіз».</div>
         </div>
     </div>
 
     <div class="card">
-        <div class="section-title">Оберіть актив (19 пар)</div>
+        <div class="section-title">
+            <span>Оберіть актив (19 пар)</span>
+        </div>
         <div class="assets-grid" id="assetsContainer">
             <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
             <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
@@ -240,13 +272,13 @@
             <button class="asset-btn" onclick="setAsset('GBPAUD')">GBPAUD</button>
             <button class="asset-btn" onclick="setAsset('CHFJPY')">CHFJPY</button>
             <button class="asset-btn" onclick="setAsset('GBPCHF')">GBPCHF</button>
-            <button class="asset-btn" onclick="setAsset('EURAUD')">EURAUD</button>
             <button class="asset-btn" onclick="setAsset('AUDJPY')">AUDJPY</button>
+            <button class="asset-btn" onclick="setAsset('AUDCHF')">AUDCHF</button>
+            <button class="asset-btn" onclick="setAsset('EURCHF')">EURCHF</button>
+            <button class="asset-btn" onclick="setAsset('AUDCAD')">AUDCAD</button>
             <button class="asset-btn" onclick="setAsset('CADJPY')">CADJPY</button>
-            <button class="asset-btn" onclick="setAsset('EURNZD')">EURNZD</button>
-            <button class="asset-btn" onclick="setAsset('GBPJPY')">GBPJPY</button>
-            <button class="asset-btn" onclick="setAsset('AUDNZD')">AUDNZD</button>
-            <button class="asset-btn" onclick="setAsset('XAUUSD')">XAUUSD</button>
+            <button class="asset-btn" onclick="setAsset('CADCHF')">CADCHF</button>
+            <button class="asset-btn" onclick="setAsset('GBPCAD')">GBPCAD</button>
         </div>
     </div>
 
@@ -270,18 +302,17 @@
             document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${symbol})`;
-            // Збережено: тепер при кліку на пару автоматичний запит НЕ виконується, лише оновлюється вибрана пара.
+            // Запит тут НЕ виконується — чекаємо натискання кнопки «Отримати мульті-аналіз»
         }
 
         async function fetchSignal() {
             const signalEl = document.getElementById('signalOutput');
             const detailsEl = document.getElementById('detailsOutput');
-            const statusEl = document.getElementById('connStatus');
+            const statusIndicator = document.getElementById('marketStatusText');
 
             signalEl.innerHTML = "⏳ Аналізуємо ринок...";
             detailsEl.innerHTML = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
-            statusEl.innerText = "● Аналіз...";
-            statusEl.style.color = "#d29922";
+            statusIndicator.innerHTML = '<span style="color: #d29922;">●</span> Аналіз ринку...';
 
             try {
                 const response = await fetch('/api/signal', {
@@ -294,13 +325,11 @@
                 signalEl.innerHTML = data.signal;
                 detailsEl.innerHTML = `${data.details} (Ціна: ${data.price})`;
                 
-                statusEl.innerText = "● Готовий";
-                statusEl.style.color = "#3fb950";
+                statusIndicator.innerHTML = '<span style="color: #3fb950;">●</span> Готовий до роботи';
             } catch (error) {
                 signalEl.innerHTML = "⚠️ ПОМИЛКА ШЛЮЗУ";
                 detailsEl.innerHTML = "Не вдалося отримати відповідь від сервера. Спробуйте ще раз.";
-                statusEl.innerText = "● Збій";
-                statusEl.style.color = "#da3633";
+                statusIndicator.innerHTML = '<span style="color: #da3633;">●</span> Збій зв’язку';
             }
         }
     </script>
