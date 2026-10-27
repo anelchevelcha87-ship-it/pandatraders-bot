@@ -1,4 +1,5 @@
 import os
+import time
 from flask import Flask, render_template, request, jsonify
 from tradingview_ta import TA_Handler, Interval
 import sqlite3
@@ -34,6 +35,17 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
+def get_safe_analysis(symbol, screener, exchange, interval, retries=3, delay=1.5):
+    """Функція з автоматичним повтором запиту при збоях шлюзу TradingView"""
+    for attempt in range(retries):
+        try:
+            handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
+            return handler.get_analysis()
+        except Exception as e:
+            if attempt == retries - 1:
+                raise e
+            time.sleep(delay)
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -49,13 +61,13 @@ def get_signal():
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
 
     try:
-        handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
-        analysis = handler.get_analysis()
+        # Отримуємо аналіз робочого таймфрейму з автоповтором
+        analysis = get_safe_analysis(symbol, screener, exchange, interval)
         
+        # Безпечний запит на старший таймфрейм (трендовий фільтр 15 хв)
         higher_rec = "NEUTRAL"
         try:
-            higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
-            higher_analysis = higher_handler.get_analysis()
+            higher_analysis = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2, delay=1)
             higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         except Exception:
             pass 
@@ -88,7 +100,7 @@ def get_signal():
         else:
             signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
-        # Отримуємо поточну статистику гравця з бази для підрахунку winrate
+        # Отримуємо поточну статистику гравця з бази
         conn = sqlite3.connect('trading_stats.db')
         cursor = conn.cursor()
         cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
@@ -165,3 +177,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    
