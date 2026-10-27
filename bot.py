@@ -54,7 +54,6 @@ def get_signal():
     data = request.get_json() or {}
     symbol = data.get('symbol', 'GBPUSD')
     expiry = data.get('expiry', '5 хв')
-    user_id = str(data.get('user_id', 'default_user'))
 
     screener, exchange = get_exchange_and_screener(symbol)
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
@@ -76,45 +75,34 @@ def get_signal():
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
+        stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
         
-        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
-        trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
+        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "стабільна робоча зона")
+        trend_desc = "висхідний тренд (BUY)" if "BUY" in higher_rec else ("низхідний тренд (SELL)" if "SELL" in higher_rec else "боковий рух (нейтрально)")
         
         is_bullish_macd = macd_val >= macd_signal
         is_bearish_macd = macd_val < macd_signal
 
-        # Збалансована та чутлива логіка для 5 хв (без зайвих блокувань)
-        is_buy_allowed = rsi < 85 and stoch_k < 90
-        is_sell_allowed = rsi > 15 and stoch_k > 10
-
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation or ("BUY" in higher_rec and is_bullish_macd)) and is_buy_allowed:
+        # Покращена фільтрація з урахуванням імпульсу та відсіканням хибних зон
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and is_bullish_macd and rsi < 75 and stoch_k < 85:
             if "BUY" in higher_rec:
                 signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
             else:
-                signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation or ("SELL" in higher_rec and is_bearish_macd)) and is_sell_allowed:
+                signal_text = "🟢 📈 ВГОРУ (CALL - помірний сигнал)"
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and is_bearish_macd and rsi > 25 and stoch_k > 15:
             if "SELL" in higher_rec:
                 signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
             else:
-                signal_text = "🔴 📉 ВНИЗ (PUT - помірний)"
+                signal_text = "🔴 📉 ВНИЗ (PUT - помірний сигнал)"
         else:
             signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
-        conn = sqlite3.connect('trading_stats.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
-        row = cursor.fetchone()
-        conn.close()
-        
-        wins = row[0] if row else 0
-        losses = row[1] if row else 0
-        total = wins + losses
-        winrate = round((wins / total * 100), 1) if total > 0 else 0.0
-
+        # Детальний розгорнутий аналіз замість сухої статистики
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Тренд 15хв: {trend_desc}. "
-            f"Ваша статистика: {wins}П / {losses}М (Winrate: {winrate}%)"
+            f"Стохастик (%K: {stoch_k}, %D: {stoch_d}) | MACD імпульс: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
+            f"Глобальний контекст (15хв): {trend_desc}. "
+            f"Оцінка шлюзу: індикатори узгоджені для 5хв експірації."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -123,7 +111,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Тимчасовий ліміт шлюзу. Зачекайте хвилину. ({str(e)[:30]})"
+            'details': f"Тимчасовий ліміт шлюзу TradingView. Зачекайте хвилину. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
@@ -176,4 +164,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+            
