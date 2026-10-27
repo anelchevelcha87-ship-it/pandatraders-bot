@@ -72,7 +72,6 @@ def get_signal():
             pass 
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
-        open_price = round(analysis.indicators.get("open", current_price), 5)
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
@@ -81,27 +80,34 @@ def get_signal():
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
         stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
         
-        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "стабільна робоча зона")
-        trend_desc = "висхідний тренд (BUY)" if "BUY" in higher_rec else ("низхідний тренд (SELL)" if "SELL" in higher_rec else "боковий рух (нейтрально)")
+        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
+        trend_desc = "висхідний (BUY)" if "BUY" in higher_rec else ("низхідний (SELL)" if "SELL" in higher_rec else "нейтральний")
         
         is_bullish_macd = macd_val >= macd_signal
         is_bearish_macd = macd_val < macd_signal
-        is_candle_green = current_price > open_price
-        
-        can_buy = is_bullish_macd and rsi < 75 and stoch_k < 85 and stoch_k > stoch_d and not is_candle_green
-        can_sell = is_bearish_macd and rsi > 25 and stoch_k > 15 and stoch_k < stoch_d and is_candle_green
 
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and can_buy and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and can_sell and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+        # Збалансована та чутлива логіка без зайвих перешкод
+        # Якщо TradingView дає загальну рекомендацію BUY/STRONG_BUY або підтверджується імпульс
+        is_buy_signal = ("BUY" in recommendation or "STRONG_BUY" in recommendation or (is_bullish_macd and rsi < 65)) and stoch_k < 85
+        is_sell_signal = ("SELL" in recommendation or "STRONG_SELL" in recommendation or (is_bearish_macd and rsi > 35)) and stoch_k > 15
+
+        if is_buy_signal and not is_sell_signal:
+            if "BUY" in higher_rec:
+                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+            else:
+                signal_text = "🟢 📈 ВГОРУ (CALL - робочий)"
+        elif is_sell_signal and not is_buy_signal:
+            if "SELL" in higher_rec:
+                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+            else:
+                signal_text = "🔴 📉 ВНИЗ (PUT - робочий)"
         else:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ (Захист від розвороту)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: НЕВИЗНАЧЕНІСТЬ (Зачекайте імпульсу)"
 
         details_text = (
-            f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Стохастик (%K: {stoch_k}, %D: {stoch_d}) | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
-            f"Глобальний тренд (15хв): {trend_desc}."
+            f"Аналіз {symbol}: Ціна {current_price}. RSI: {rsi} ({rsi_status}). "
+            f"Stoch (%K: {stoch_k}). Тренд 15м: {trend_desc}. "
+            f"Рекомендація шлюзу: {recommendation}."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -110,7 +116,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Захист шлюзу тимчасово обмежив запити. ({str(e)[:30]})"
+            'details': f"Тимчасовий ліміт шлюзу. Спробуйте ще раз. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
