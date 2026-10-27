@@ -36,7 +36,6 @@ def get_exchange_and_screener(symbol):
     return 'forex', 'FX_IDC'
 
 def get_safe_analysis(symbol, screener, exchange, interval, retries=3, delay=1.5):
-    """Функція з автоматичним повтором запиту при збоях шлюзу TradingView"""
     for attempt in range(retries):
         try:
             handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
@@ -61,10 +60,8 @@ def get_signal():
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
 
     try:
-        # Отримуємо аналіз робочого таймфрейму з автоповтором
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
         
-        # Безпечний запит на старший таймфрейм (трендовий фільтр 15 хв)
         higher_rec = "NEUTRAL"
         try:
             higher_analysis = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2, delay=1)
@@ -83,16 +80,19 @@ def get_signal():
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
         trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
         
-        is_bullish_macd = macd_val > macd_signal
+        is_bullish_macd = macd_val >= macd_signal
         is_bearish_macd = macd_val < macd_signal
 
-        # Збалансована робоча логіка для 5 хв
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and is_bullish_macd and rsi < 72 and stoch_k < 85:
+        # Збалансована та чутлива логіка для 5 хв (без зайвих блокувань)
+        is_buy_allowed = rsi < 85 and stoch_k < 90
+        is_sell_allowed = rsi > 15 and stoch_k > 10
+
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation or ("BUY" in higher_rec and is_bullish_macd)) and is_buy_allowed:
             if "BUY" in higher_rec:
                 signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
             else:
                 signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and is_bearish_macd and rsi > 28 and stoch_k > 15:
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation or ("SELL" in higher_rec and is_bearish_macd)) and is_sell_allowed:
             if "SELL" in higher_rec:
                 signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
             else:
@@ -100,7 +100,6 @@ def get_signal():
         else:
             signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
-        # Отримуємо поточну статистику гравця з бази
         conn = sqlite3.connect('trading_stats.db')
         cursor = conn.cursor()
         cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
