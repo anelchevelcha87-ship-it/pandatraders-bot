@@ -102,7 +102,7 @@
             font-weight: 600;
         }
 
-        /* 4 кнопки замість 5 (без 1 хв) */
+        /* 4 таймфрейми (без 1 хв) */
         .timeframes-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -146,12 +146,13 @@
             background: var(--accent-green-hover);
         }
 
+        /* Збільшений та відкритий блок глибокого аналізу */
         .analysis-box {
             background: #090d16;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             padding: 12px;
-            min-height: 85px;
+            min-height: 95px;
         }
 
         .signal-title {
@@ -168,6 +169,7 @@
             line-height: 1.45;
         }
 
+        /* Всі 19 пар повністю видимі без прокрутки */
         .assets-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -239,7 +241,7 @@
         <div class="section-title">Час експірації</div>
         <div class="timeframes-grid" id="tfContainer">
             <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
-            <button class="tf-btn" onclick="setExpiry('15 хв')">15 хв</button>
+            <button class="tf-btn" onclick="setExpiry('10 хв')">10 хв</button>
             <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
             <button class="tf-btn" onclick="setExpiry('1 год')">1 год</button>
         </div>
@@ -289,7 +291,7 @@
 
     <script>
         let currentSymbol = 'GBPUSD';
-        let currentExpiry = '5 хв'; // За дефолтом одразу 5 хв
+        let currentExpiry = '5 хв';
 
         function setExpiry(tf) {
             currentExpiry = tf;
