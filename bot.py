@@ -22,6 +22,7 @@ def init_db():
 
 init_db()
 
+# Тільки якісні таймфрейми для бінарних опціонів (без шуму 1 хв)
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
     '15 хв': Interval.INTERVAL_15_MINUTES,
@@ -43,7 +44,7 @@ def get_safe_analysis(symbol, screener, exchange, interval, retries=3):
         except Exception as e:
             if attempt == retries - 1:
                 raise e
-            sleep_time = (attempt + 1) * 2.5 + random.uniform(1.0, 2.0)
+            sleep_time = (attempt + 1) * 2.0 + random.uniform(0.5, 1.5)
             time.sleep(sleep_time)
 
 @app.route('/')
@@ -60,39 +61,84 @@ def get_signal():
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
 
     try:
+        # 1. Аналіз робочого таймфрейму
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
-        time.sleep(random.uniform(0.4, 0.8))
+        time.sleep(random.uniform(0.2, 0.4))
 
-        current_price = round(analysis.indicators.get("close", 0.0), 5)
+        # 2. Аналіз 15-хвилинного тренду
+        higher_rec = "NEUTRAL"
+        try:
+            higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2)
+            higher_rec = higher.summary.get("RECOMMENDATION", "NEUTRAL")
+        except Exception:
+            pass
+
+        # 3. Аналіз 1-годинного тренду
+        h1_rec = "NEUTRAL"
+        try:
+            h1 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_1_HOUR, retries=2)
+            h1_rec = h1.summary.get("RECOMMENDATION", "NEUTRAL")
+        except Exception:
+            pass
+
+        ind = analysis.indicators
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
-        
-        rsi = round(analysis.indicators.get("RSI", 50.0), 2)
-        macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
-        macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
-        stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
-        
-        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
-        is_bullish_macd = macd_val >= macd_signal
 
-        is_buy = "BUY" in recommendation or "STRONG_BUY" in recommendation or (is_bullish_macd and rsi < 65)
-        is_sell = "SELL" in recommendation or "STRONG_SELL" in recommendation or (not is_bullish_macd and rsi > 35)
+        current_price = round(ind.get("close", 0.0), 5)
+        high_price = round(ind.get("high", current_price), 5)
+        low_price = round(ind.get("low", current_price), 5)
+        
+        rsi = round(ind.get("RSI", 50.0), 2)
+        macd = round(ind.get("MACD.macd", 0.0), 5)
+        macd_signal = round(ind.get("MACD.signal", 0.0), 5)
+        stoch_k = round(ind.get("Stoch.K", 50.0), 2)
+        
+        is_bullish_macd = macd >= macd_signal
+        higher_bull = "BUY" in higher_rec or "STRONG_BUY" in higher_rec
+        higher_bear = "SELL" in higher_rec or "STRONG_SELL" in higher_rec
+        h1_bull = "BUY" in h1_rec
 
-        if is_buy and not is_sell:
-            signal_text = "🔥 СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif is_sell and not is_buy:
-            signal_text = "🔥 СИГНАЛ: 📉 ВНИЗ (PUT)"
-        else:
-            if "BUY" in recommendation:
-                signal_text = "🟢 📈 ВГОРУ (CALL - по тренду)"
-            elif "SELL" in recommendation:
-                signal_text = "🔴 📉 ВНИЗ (PUT - по тренду)"
+        # Визначення знаходження ціни біля локальних зон (Підтримка / Опір)
+        # Якщо ціна близько до мінімуму свічки / перепродана — спрацьовує зона підтримки
+        is_near_support = rsi < 42 or stoch_k < 28
+        is_near_resistance = rsi > 58 or stoch_k > 72
+
+        # Інтелектуальна логіка: відскік від підтримки або трендова угода
+        is_call = (
+            (is_near_support and is_bullish_macd) or 
+            ("BUY" in recommendation and not higher_bear)
+        )
+        
+        is_put = (
+            (is_near_resistance and not is_bullish_macd) or 
+            ("SELL" in recommendation and not higher_bull)
+        )
+
+        if is_call and not is_put:
+            if is_near_support:
+                signal_text = "🔥 ЗОНА ПІДТРИМКИ: 📈 ВГОРУ (CALL - відскік)"
+                quality = "Висока (Реакція від мінімуму)"
             else:
-                signal_text = "⚪️ ⚖️ РИНКОВИЙ ФЛЕТ (Нейтрально)"
+                signal_text = "🟢 📈 ВГОРУ (CALL - по тренду)"
+                quality = "Стандартна"
+        elif is_put and not is_call:
+            if is_near_resistance:
+                signal_text = "🔥 ЗОНА ОПОРУ: 📉 ВНИЗ (PUT - відскік)"
+                quality = "Висока (Реакція від максимуму)"
+            else:
+                signal_text = "🔴 📉 ВНИЗ (PUT - по тренду)"
+                quality = "Стандартна"
+        else:
+            signal_text = "⚪️ ⚖️ РИНКОВИЙ ФЛЕТ: УТРИМАТИСЬ"
+            quality = "Поза зоною інтересу"
+
+        rsi_status = "перекупленість" if rsi > 70 else ("перепроданість" if rsi < 30 else "робоча зона")
+        trend_15 = "висхідний" if higher_bull else ("низхідний" if higher_bear else "нейтральний")
 
         details_text = (
-            f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Stoch %K: {stoch_k} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
-            f"Рекомендація: {recommendation}."
+            f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}) | "
+            f"Stoch K: {stoch_k} | Зона: {'Підтримка' if is_near_support else ('Опір' if is_near_resistance else 'Середина')} | "
+            f"Тренд 15м: {trend_15} | Якість: {quality}"
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -101,7 +147,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Захист від частоти запитів. Зачекайте 5 сек. ({str(e)[:35]})"
+            'details': f"Захист шлюзу. Спробуйте ще раз. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
@@ -154,4 +200,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+        
