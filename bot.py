@@ -48,18 +48,18 @@ def get_signal():
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_1_MINUTE)
 
     try:
-        # Основний запит на поточний таймфрейм
+        # Отримуємо аналіз робочого таймфрейму
         handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
         analysis = handler.get_analysis()
         
-        # Безпечний запит на старший таймфрейм із захистом від падіння
+        # Безпечний запит на старший таймфрейм (трендовий фільтр)
         higher_rec = "NEUTRAL"
         try:
             higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
             higher_analysis = higher_handler.get_analysis()
             higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         except Exception:
-            pass # Якщо старший таймфрейм недоступний, не падаємо, а використовуємо нейтральний фільтр
+            pass 
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
         open_price = round(analysis.indicators.get("open", current_price), 5)
@@ -69,31 +69,33 @@ def get_signal():
         ema10 = round(analysis.indicators.get("EMA10", current_price), 5)
         ema30 = round(analysis.indicators.get("EMA30", current_price), 5)
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
+        macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
         
-        candle_is_green = current_price > open_price
-        candle_is_red = current_price < open_price
-
-        # Детальна логіка індикаторів
-        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "нормальна зона")
-        trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "бічний/нейтральний")
-        ema_status = "ціна вище EMA (бичачий настрій)" if current_price > ema10 else "ціна нижче EMA (ведмежий настрій)"
-
-        if "BUY" in recommendation and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec):
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_red and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif "SELL" in recommendation and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec):
-            signal_text = "⚪️ ⚖️ ФІЛЬТР ШУМУ: ОЧІКУВАННЯ" if (candle_is_green and expiry == '1 хв') else "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
-        elif "BUY" in recommendation:
-            signal_text = "🟢 📈 ВГОРУ (CALL)"
-        elif "SELL" in recommendation:
-            signal_text = "🔴 📉 ВНИЗ (PUT)"
+        # Покращена фільтрація та логіка точності
+        rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
+        trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
+        
+        # Додаткові перевірки для відсіювання хибних сигналів
+        is_bullish_macd = macd_val > macd_signal
+        is_bearish_macd = macd_val < macd_signal
+        
+        # Формування розумного та точного сигналу
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and rsi < 68:
+            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and rsi > 32:
+            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+        elif "BUY" in recommendation and rsi < 70:
+            signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
+        elif "SELL" in recommendation and rsi > 30:
+            signal_text = "🔴 📉 ВНИЗ (PUT - помірний)"
         else:
-            signal_text = "⚪️ ⚖️ НЕЙТРАЛЬНО"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
             f"Тренд 15хв: {trend_desc}. "
-            f"EMA10: {ema10} | EMA30: {ema30} | MACD: {macd_val}. "
-            f"Логіка бота: оцінка імпульсу поточної свічки ({'зелена' if candle_is_green else 'червона'}), положення відносно ковзних середніх та підтвердження старшим трендом."
+            f"MACD: {'бичачий' if is_bullish_macd else 'ведмежий'} імпульс. "
+            f"Логіка: відсіювання ринкового шуму через комбінацію RSI, MACD та глобального тренду."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -102,7 +104,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Тимчасовий ліміт або затримка шлюзу TradingView. Спробуйте за хвилину. (Деталі: {str(e)[:40]})"
+            'details': f"Тимчасовий ліміт TradingView. Зачекайте хвилину. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
