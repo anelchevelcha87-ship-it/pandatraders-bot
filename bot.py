@@ -24,9 +24,9 @@ def init_db():
 
 init_db()
 
+# Повернено 15 хв (стандартний та безпечний інтервал для тренду)
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
-    '10 хв': Interval.INTERVAL_5_MINUTES, 
     '15 хв': Interval.INTERVAL_15_MINUTES,
     '30 хв': Interval.INTERVAL_30_MINUTES,
     '1 год': Interval.INTERVAL_1_HOUR,
