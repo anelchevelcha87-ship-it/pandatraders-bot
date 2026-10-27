@@ -22,10 +22,10 @@ def init_db():
 
 init_db()
 
-# Тільки якісні таймфрейми для бінарних опціонів (без шуму 1 хв)
+# Робочі таймфрейми (змінили 15 хв на 10 хв)
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
-    '15 хв': Interval.INTERVAL_15_MINUTES,
+    '10 хв': Interval.INTERVAL_10_MINUTES,
     '30 хв': Interval.INTERVAL_30_MINUTES,
     '1 год': Interval.INTERVAL_1_HOUR,
 }
@@ -65,15 +65,15 @@ def get_signal():
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
         time.sleep(random.uniform(0.2, 0.4))
 
-        # 2. Аналіз 15-хвилинного тренду
+        # 2. Аналіз 10-хвилинного тренду (оптимально для 5м експірацій)
         higher_rec = "NEUTRAL"
         try:
-            higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2)
+            higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_10_MINUTES, retries=2)
             higher_rec = higher.summary.get("RECOMMENDATION", "NEUTRAL")
         except Exception:
             pass
 
-        # 3. Аналіз 1-годинного тренду
+        # 3. Аналіз 1-годинного тренду для глобального напрямку
         h1_rec = "NEUTRAL"
         try:
             h1 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_1_HOUR, retries=2)
@@ -85,9 +85,6 @@ def get_signal():
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
 
         current_price = round(ind.get("close", 0.0), 5)
-        high_price = round(ind.get("high", current_price), 5)
-        low_price = round(ind.get("low", current_price), 5)
-        
         rsi = round(ind.get("RSI", 50.0), 2)
         macd = round(ind.get("MACD.macd", 0.0), 5)
         macd_signal = round(ind.get("MACD.signal", 0.0), 5)
@@ -98,12 +95,11 @@ def get_signal():
         higher_bear = "SELL" in higher_rec or "STRONG_SELL" in higher_rec
         h1_bull = "BUY" in h1_rec
 
-        # Визначення знаходження ціни біля локальних зон (Підтримка / Опір)
-        # Якщо ціна близько до мінімуму свічки / перепродана — спрацьовує зона підтримки
+        # Визначення зон підтримки та опору
         is_near_support = rsi < 42 or stoch_k < 28
         is_near_resistance = rsi > 58 or stoch_k > 72
 
-        # Інтелектуальна логіка: відскік від підтримки або трендова угода
+        # Логіка входів з урахуванням 10м тренду та зон
         is_call = (
             (is_near_support and is_bullish_macd) or 
             ("BUY" in recommendation and not higher_bear)
@@ -133,12 +129,12 @@ def get_signal():
             quality = "Поза зоною інтересу"
 
         rsi_status = "перекупленість" if rsi > 70 else ("перепроданість" if rsi < 30 else "робоча зона")
-        trend_15 = "висхідний" if higher_bull else ("низхідний" if higher_bear else "нейтральний")
+        trend_10 = "висхідний" if higher_bull else ("низхідний" if higher_bear else "нейтральний")
 
         details_text = (
             f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}) | "
             f"Stoch K: {stoch_k} | Зона: {'Підтримка' if is_near_support else ('Опір' if is_near_resistance else 'Середина')} | "
-            f"Тренд 15м: {trend_15} | Якість: {quality}"
+            f"Тренд 10м: {trend_10} | Якість: {quality}"
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -200,4 +196,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-        
+    
