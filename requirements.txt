@@ -1,6 +1,5 @@
-flask==3.0.3
+flask==3.0.flask==3.0.3
 yfinance==0.2.48
-pandas==2.2.3
+pandas>=2.2.0
 pandas-ta==0.4.71b0
-numpy==1.26.4
 gunicorn==21.2.0
