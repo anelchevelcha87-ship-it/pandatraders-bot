@@ -30,7 +30,7 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            padding: 10px;
+            padding: 8px;
             max-width: 480px;
             margin: 0 auto;
         }
@@ -41,13 +41,13 @@
             align-items: center;
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            padding: 10px 14px;
+            padding: 8px 12px;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .logo {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #fff;
             display: flex;
@@ -56,7 +56,7 @@
         }
 
         .status-badge {
-            font-size: 11px;
+            font-size: 10px;
             color: #3fb950;
             background: rgba(63, 185, 80, 0.1);
             padding: 3px 6px;
@@ -68,19 +68,18 @@
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 8px;
+            padding: 8px;
+            margin-bottom: 6px;
         }
 
         .section-title {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             letter-spacing: 0.5px;
         }
 
-        /* Таймфрейми */
         .timeframes-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -91,7 +90,7 @@
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 6px 2px;
+            padding: 5px 2px;
             font-size: 11px;
             font-weight: 600;
             border-radius: 4px;
@@ -105,18 +104,17 @@
             color: #fff;
         }
 
-        /* Кнопка запиту */
         .action-btn {
             width: 100%;
             background: var(--accent-green);
             color: white;
             border: none;
-            padding: 12px;
-            font-size: 14px;
+            padding: 10px;
+            font-size: 13px;
             font-weight: 700;
             border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-align: center;
             box-shadow: 0 3px 10px rgba(35, 134, 54, 0.3);
         }
@@ -125,43 +123,42 @@
             background: var(--accent-green-hover);
         }
 
-        /* Блок аналізу */
         .analysis-box {
             background: #090d16;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px;
+            padding: 8px;
         }
 
         .signal-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             padding-bottom: 4px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .analysis-details {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
-        /* Сітка активів — робимо компактною для всіх пар */
         .assets-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 4px;
-            max-height: 160px;
+            max-height: 145px;
             overflow-y: auto;
+            padding-right: 2px;
         }
 
         .asset-btn {
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 7px 4px;
-            font-size: 12px;
+            padding: 5px 2px;
+            font-size: 11px;
             font-weight: 600;
             border-radius: 4px;
             cursor: pointer;
@@ -174,7 +171,6 @@
             color: #fff;
         }
 
-        /* Нижня панель навігації */
         nav {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -186,8 +182,8 @@
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 8px;
-            font-size: 12px;
+            padding: 7px;
+            font-size: 11px;
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -208,7 +204,6 @@
         <div class="status-badge" id="connStatus">● Готовий</div>
     </header>
 
-    <!-- Час експірації -->
     <div class="card">
         <div class="section-title">Час експірації</div>
         <div class="timeframes-grid" id="tfContainer">
@@ -220,21 +215,18 @@
         </div>
     </div>
 
-    <!-- Кнопка отримання сигналу -->
     <button class="action-btn" onclick="fetchSignal()">🔍 Отримати мульті-аналіз</button>
 
-    <!-- Глибокий аналіз активу -->
     <div class="card">
         <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
         <div class="analysis-box">
-            <div class="signal-title" id="signalOutput">⏳ Натисніть кнопку для аналізу...</div>
-            <div class="analysis-details" id="detailsOutput">Виберіть актив та натисніть отримання сигналу для перевірки ринку.</div>
+            <div class="signal-title" id="signalOutput">⏳ Очікування вибору...</div>
+            <div class="analysis-details" id="detailsOutput">Оберіть час експірації, актив та натисніть кнопку «Отримати мульті-аналіз».</div>
         </div>
     </div>
 
-    <!-- Вибір активу -->
     <div class="card">
-        <div class="section-title">Оберіть актив</div>
+        <div class="section-title">Оберіть актив (19 пар)</div>
         <div class="assets-grid" id="assetsContainer">
             <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
             <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
@@ -245,13 +237,19 @@
             <button class="asset-btn" onclick="setAsset('NZDUSD')">NZDUSD</button>
             <button class="asset-btn" onclick="setAsset('EURGBP')">EURGBP</button>
             <button class="asset-btn" onclick="setAsset('EURJPY')">EURJPY</button>
+            <button class="asset-btn" onclick="setAsset('GBPAUD')">GBPAUD</button>
             <button class="asset-btn" onclick="setAsset('CHFJPY')">CHFJPY</button>
             <button class="asset-btn" onclick="setAsset('GBPCHF')">GBPCHF</button>
+            <button class="asset-btn" onclick="setAsset('EURAUD')">EURAUD</button>
+            <button class="asset-btn" onclick="setAsset('AUDJPY')">AUDJPY</button>
+            <button class="asset-btn" onclick="setAsset('CADJPY')">CADJPY</button>
+            <button class="asset-btn" onclick="setAsset('EURNZD')">EURNZD</button>
+            <button class="asset-btn" onclick="setAsset('GBPJPY')">GBPJPY</button>
+            <button class="asset-btn" onclick="setAsset('AUDNZD')">AUDNZD</button>
             <button class="asset-btn" onclick="setAsset('XAUUSD')">XAUUSD</button>
         </div>
     </div>
 
-    <!-- Навігація -->
     <nav>
         <button class="nav-btn active">📊 Торгівля</button>
         <button class="nav-btn" onclick="alert('Статистика сесії оновлюється автоматично в базі даних.')">📈 Статистика</button>
@@ -272,7 +270,7 @@
             document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${symbol})`;
-            fetchSignal();
+            // Збережено: тепер при кліку на пару автоматичний запит НЕ виконується, лише оновлюється вибрана пара.
         }
 
         async function fetchSignal() {
