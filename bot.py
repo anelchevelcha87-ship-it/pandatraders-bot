@@ -22,10 +22,10 @@ def init_db():
 
 init_db()
 
-# Робочі таймфрейми (змінили 15 хв на 10 хв)
+# Тільки якісні таймфрейми для бінарних опціонів (без шуму 1 хв)
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
-    '10 хв': Interval.INTERVAL_10_MINUTES,
+    '15 хв': Interval.INTERVAL_15_MINUTES,
     '30 хв': Interval.INTERVAL_30_MINUTES,
     '1 год': Interval.INTERVAL_1_HOUR,
 }
@@ -65,10 +65,10 @@ def get_signal():
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
         time.sleep(random.uniform(0.2, 0.4))
 
-        # 2. Аналіз 10-хвилинного тренду (оптимально для 5м експірацій)
+        # 2. Аналіз 15-хвилинного тренду
         higher_rec = "NEUTRAL"
         try:
-            higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_10_MINUTES, retries=2)
+            higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2)
             higher_rec = higher.summary.get("RECOMMENDATION", "NEUTRAL")
         except Exception:
             pass
@@ -99,7 +99,7 @@ def get_signal():
         is_near_support = rsi < 42 or stoch_k < 28
         is_near_resistance = rsi > 58 or stoch_k > 72
 
-        # Логіка входів з урахуванням 10м тренду та зон
+        # Логіка входів з урахуванням 15м тренду та зон
         is_call = (
             (is_near_support and is_bullish_macd) or 
             ("BUY" in recommendation and not higher_bear)
@@ -129,12 +129,12 @@ def get_signal():
             quality = "Поза зоною інтересу"
 
         rsi_status = "перекупленість" if rsi > 70 else ("перепроданість" if rsi < 30 else "робоча зона")
-        trend_10 = "висхідний" if higher_bull else ("низхідний" if higher_bear else "нейтральний")
+        trend_15 = "висхідний" if higher_bull else ("низхідний" if higher_bear else "нейтральний")
 
         details_text = (
             f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}) | "
             f"Stoch K: {stoch_k} | Зона: {'Підтримка' if is_near_support else ('Опір' if is_near_resistance else 'Середина')} | "
-            f"Тренд 10м: {trend_10} | Якість: {quality}"
+            f"Тренд 15м: {trend_15} | Якість: {quality}"
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -196,4 +196,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
+            
