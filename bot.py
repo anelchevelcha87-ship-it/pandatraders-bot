@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, jsonify
 from tradingview_ta import TA_Handler, Interval
 import sqlite3
 
-app = Flask(__name__, template_folder='templates')
+app = Flask(name, template_folder='templates')
 
 def init_db():
     conn = sqlite3.connect('trading_stats.db')
@@ -77,7 +77,7 @@ def get_signal():
         except Exception:
             pass
 
-        # 1-годинний ТФ (бажаний, але не обов'язковий)
+        # 1-годинний ТФ (бажаний)
         h1_rec = "NEUTRAL"
         try:
             h1 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_1_HOUR, retries=2)
@@ -106,7 +106,7 @@ def get_signal():
         h1_bull = "BUY" in h1_rec
         h1_bear = "SELL" in h1_rec
 
-        # EMA підтвердження (якщо є)
+        # EMA підтвердження
         ema_ok_buy = True
         ema_ok_sell = True
         if ema20 is not None and ema50 is not None:
@@ -118,8 +118,7 @@ def get_signal():
         if adx is not None:
             strong_trend = adx >= 18
 
-        # ====================== УМОВИ ======================
-        # Сильний BUY
+        # ====================== УМОВИ СИГНАЛУ ======================
         is_strong_buy = (
             recommendation in ["STRONG_BUY", "BUY"] and
             higher_bull and
@@ -131,8 +130,7 @@ def get_signal():
             ema_ok_buy
         )
 
-# Сильний SELL
-        is_strong_sell = (
+is_strong_sell = (
             recommendation in ["STRONG_SELL", "SELL"] and
             higher_bear and
             is_bearish_macd and
@@ -143,7 +141,7 @@ def get_signal():
             ema_ok_sell
         )
 
-        # Бонус за підтвердження на 1H (робить сигнал ще надійнішим)
+        # Формування сигналу
         if is_strong_buy and h1_bull:
             confidence = "ДУЖЕ ВИСОКА"
             signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
@@ -160,7 +158,6 @@ def get_signal():
             signal_text = "⚪️ НЕМАЄ ВПЕВНЕНОГО СИГНАЛУ"
             confidence = "—"
 
-        # Деталі
         rsi_status = (
             "перекупленість" if rsi > 70 else
             "перепроданість" if rsi < 30 else
@@ -200,7 +197,10 @@ def get_stats():
     cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
     conn.close()
-    return jsonify({'wins': row[0] if row else 0, 'losses': row[1] if row else 0})
+    return jsonify({
+        'wins': row[0] if row else 0,
+        'losses': row[1] if row else 0
+    })
 
 @app.route('/api/stats/update', methods=['POST'])
 def update_stats():
@@ -219,11 +219,17 @@ def update_stats():
             wins += 1
         else:
             losses += 1
-        cursor.execute('UPDATE stats SET wins = ?, losses = ? WHERE user_id = ?', (wins, losses, user_id))
+        cursor.execute(
+            'UPDATE stats SET wins = ?, losses = ? WHERE user_id = ?',
+            (wins, losses, user_id)
+        )
     else:
         wins = 1 if result_type == 'win' else 0
         losses = 0 if result_type == 'win' else 1
-        cursor.execute('INSERT INTO stats (user_id, wins, losses) VALUES (?, ?, ?)', (user_id, wins, losses))
+        cursor.execute(
+            'INSERT INTO stats (user_id, wins, losses) VALUES (?, ?, ?)',
+            (user_id, wins, losses)
+        )
 
     conn.commit()
     conn.close()
@@ -235,7 +241,10 @@ def reset_stats():
     user_id = str(data.get('user_id', 'default_user'))
     conn = sqlite3.connect('trading_stats.db')
     cursor = conn.cursor()
-    cursor.execute('UPDATE stats SET wins = 0, losses = 0 WHERE user_id = ?', (user_id,))
+    cursor.execute(
+        'UPDATE stats SET wins = 0, losses = 0 WHERE user_id = ?',
+        (user_id,)
+    )
     conn.commit()
     conn.close()
     return jsonify({'wins': 0, 'losses': 0})
