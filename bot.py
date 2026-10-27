@@ -48,11 +48,9 @@ def get_signal():
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
 
     try:
-        # Отримуємо аналіз робочого таймфрейму
         handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=interval)
         analysis = handler.get_analysis()
         
-        # Безпечний запит на старший таймфрейм (трендовий фільтр 15 хв)
         higher_rec = "NEUTRAL"
         try:
             higher_handler = TA_Handler(symbol=symbol, screener=screener, exchange=exchange, interval=Interval.INTERVAL_15_MINUTES)
@@ -64,43 +62,36 @@ def get_signal():
         current_price = round(analysis.indicators.get("close", 0.0), 5)
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
-        # Індикатори
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
         
-        # Стохастик (%K та %D)
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
         stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
         
-        # Фільтри та статус
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
         trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
         
         is_bullish_macd = macd_val > macd_signal
         is_bearish_macd = macd_val < macd_signal
         
-        # Умови стохастика для входу
-        stoch_bullish_ok = stoch_k < 80 and stoch_k > stoch_d  # Не в перекупленості і лінія K вище D (рух вгору)
-        stoch_bearish_ok = stoch_k > 20 and stoch_k < stoch_d  # Не в перепроданості і лінія K нижче D (рух вниз)
+        # Суворіші перевірки стохастика проти розворотів у пастці
+        # Забороняємо SELL, якщо стохастик у низу (< 30) або вже перетинається вгору
+        # Забороняємо BUY, якщо стохастик у верху (> 70) або вже перетинається вниз
+        stoch_sell_safe = stoch_k > 30 and stoch_k < 85 and stoch_k < stoch_d
+        stoch_buy_safe = stoch_k < 70 and stoch_k > 15 and stoch_k > stoch_d
 
-        # Розумна логіка з урахуванням стохастика, MACD та тренду
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and stoch_bullish_ok and rsi < 68:
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and stoch_buy_safe and rsi < 68:
             signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and stoch_bearish_ok and rsi > 32:
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and stoch_sell_safe and rsi > 32:
             signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
-        elif "BUY" in recommendation and rsi < 70 and stoch_k < 85:
-            signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
-        elif "SELL" in recommendation and rsi > 30 and stoch_k > 15:
-            signal_text = "🔴 📉 ВНИЗ (PUT - помірний)"
         else:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ (Ризик розвороту)"
 
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
             f"Стохастик: %K={stoch_k}, %D={stoch_d}. "
-            f"Тренд 15хв: {trend_desc} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
-            f"Фільтр: стохастик та імпульс успішно узгоджені."
+            f"Тренд 15хв: {trend_desc}. Захист від V-подібних розворотів активовано."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
