@@ -1,4 +1,3 @@
-
 import os
 import time
 import random
@@ -6,7 +5,7 @@ from flask import Flask, render_template, request, jsonify
 from tradingview_ta import TA_Handler, Interval
 import sqlite3
 
-app = Flask(name, template_folder='templates')
+app = Flask(__name__, template_folder='templates')
 
 def init_db():
     conn = sqlite3.connect('trading_stats.db')
@@ -69,7 +68,7 @@ def get_signal():
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
         time.sleep(random.uniform(0.25, 0.5))
 
-        # 15-хвилинний ТФ (обов'язковий фільтр)
+        # 15-хвилинний ТФ
         higher_rec = "NEUTRAL"
         try:
             higher = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=3)
@@ -77,7 +76,7 @@ def get_signal():
         except Exception:
             pass
 
-        # 1-годинний ТФ (бажаний)
+        # 1-годинний ТФ
         h1_rec = "NEUTRAL"
         try:
             h1 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_1_HOUR, retries=2)
@@ -106,19 +105,16 @@ def get_signal():
         h1_bull = "BUY" in h1_rec
         h1_bear = "SELL" in h1_rec
 
-        # EMA підтвердження
         ema_ok_buy = True
         ema_ok_sell = True
         if ema20 is not None and ema50 is not None:
             ema_ok_buy = ema20 >= ema50
             ema_ok_sell = ema20 <= ema50
 
-        # ADX
         strong_trend = True
         if adx is not None:
             strong_trend = adx >= 18
 
-        # ====================== УМОВИ СИГНАЛУ ======================
         is_strong_buy = (
             recommendation in ["STRONG_BUY", "BUY"] and
             higher_bull and
@@ -130,7 +126,7 @@ def get_signal():
             ema_ok_buy
         )
 
-is_strong_sell = (
+        is_strong_sell = (
             recommendation in ["STRONG_SELL", "SELL"] and
             higher_bear and
             is_bearish_macd and
@@ -141,7 +137,6 @@ is_strong_sell = (
             ema_ok_sell
         )
 
-        # Формування сигналу
         if is_strong_buy and h1_bull:
             confidence = "ДУЖЕ ВИСОКА"
             signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
@@ -249,6 +244,7 @@ def reset_stats():
     conn.close()
     return jsonify({'wins': 0, 'losses': 0})
 
-if name == 'main':
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    
