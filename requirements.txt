@@ -1,4 +1,3 @@
-flask
-tradingview-ta
-pytz
-gunicorn
+flask==3.0.3
+tradingview-ta==3.3.0
+gunicorn==21.2.0
