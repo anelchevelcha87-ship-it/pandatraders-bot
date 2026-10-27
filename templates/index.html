@@ -102,9 +102,10 @@
             font-weight: 600;
         }
 
+        /* 4 кнопки замість 5 (без 1 хв) */
         .timeframes-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 6px;
         }
 
@@ -145,7 +146,6 @@
             background: var(--accent-green-hover);
         }
 
-        /* Збільшений блок глибокого аналізу */
         .analysis-box {
             background: #090d16;
             border: 1px solid var(--border-color);
@@ -168,7 +168,6 @@
             line-height: 1.45;
         }
 
-        /* Відкриті великі кнопки для всіх 19 пар без скролу */
         .assets-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -235,10 +234,10 @@
         </div>
     </div>
 
+    <!-- Час експірації (без 1 хв) -->
     <div class="card">
         <div class="section-title">Час експірації</div>
         <div class="timeframes-grid" id="tfContainer">
-            <button class="tf-btn" onclick="setExpiry('1 хв')">1 хв</button>
             <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
             <button class="tf-btn" onclick="setExpiry('15 хв')">15 хв</button>
             <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
@@ -290,7 +289,7 @@
 
     <script>
         let currentSymbol = 'GBPUSD';
-        let currentExpiry = '5 хв';
+        let currentExpiry = '5 хв'; // За дефолтом одразу 5 хв
 
         function setExpiry(tf) {
             currentExpiry = tf;
@@ -327,7 +326,7 @@
                 
                 statusIndicator.innerHTML = '<span style="color: #3fb950;">●</span> Готовий до роботи';
             } catch (error) {
-                signalEl.innerHTML = "⚠️ ПОМИЛКА ШЛЮЗУ";
+                signalEl.innerHTML = "⚠️ ПОМИЛКА АНАЛІЗУ";
                 detailsEl.innerHTML = "Не вдалося отримати відповідь від сервера. Спробуйте ще раз.";
                 statusIndicator.innerHTML = '<span style="color: #da3633;">●</span> Збій зв’язку';
             }
