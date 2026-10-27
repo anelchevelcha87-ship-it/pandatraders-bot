@@ -3,326 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pandatraders Pro</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Pandatraders Pro Terminal</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #0e1621; color: #ffffff; padding: 12px; padding-bottom: 70px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: #17212b; padding: 10px 14px; border-radius: 12px; margin-bottom: 14px; font-size: 14px; font-weight: 600; }
-        .live-badge { color: #2ecc71; display: flex; align-items: center; gap: 6px; font-size: 12px; }
-        .live-dot { width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; box-shadow: 0 0 8px #2ecc71; }
-        .volatility-banner { background: #17212b; border: 1px solid #232e3c; border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; color: #899bb1; }
-        .section-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; text-align: center; margin-bottom: 8px; letter-spacing: 0.5px; }
-        .card { background: #17212b; border-radius: 12px; padding: 12px; margin-bottom: 14px; border: 1px solid #232e3c; }
-        .expiry-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-        .btn-expiry { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 10px 0; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; text-align: center; }
-        .btn-expiry.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
-        .btn-signal { width: 100%; background: #2ecc71; color: #0e1621; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 14px; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
-        .analysis-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
-        .analysis-desc { font-size: 12px; color: #899bb1; line-height: 1.4; margin-top: 6px; }
-        
-        .timer-card { background: #17212b; border: 1px solid #2b3847; border-radius: 12px; padding: 12px; margin-bottom: 14px; text-align: center; display: none; }
-        .timer-title { font-size: 11px; text-transform: uppercase; color: #7f8c8d; margin-bottom: 4px; }
-        .timer-countdown { font-size: 24px; font-weight: 700; color: #2ecc71; letter-spacing: 1px; }
-        
-        .result-box { display: none; margin-top: 10px; background: #232e3c; padding: 10px; border-radius: 8px; }
-        .result-btns { display: flex; gap: 8px; margin-top: 8px; }
-        .btn-win { flex: 1; background: #1e4620; border: 1px solid #2ecc71; color: #2ecc71; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .btn-loss { flex: 1; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #238636;
+            --accent-green-hover: #2ea043;
+            --accent-red: #da3633;
+            --accent-blue: #1f6feb;
+            --gold-color: #f0883e;
+        }
 
-        .assets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .btn-asset { background: #232e3c; border: 1px solid #2b3847; color: #ffffff; padding: 10px 0; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
-        .btn-asset.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
-        
-        .btn-reset { width: 100%; background: #461e1e; border: 1px solid #e74c3c; color: #e74c3c; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #17212b; display: flex; padding: 8px 12px; gap: 8px; border-top: 1px solid #232e3c; z-index: 100; }
-        .nav-btn { flex: 1; background: #232e3c; border: 1px solid #2b3847; color: #899bb1; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
-        .nav-btn.active { background: #1e4620; border-color: #2ecc71; color: #2ecc71; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 12px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            color: #3fb950;
+            background: rgba(63, 185, 80, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Таймфрейми */
+        .timeframes-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .tf-btn {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 4px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .tf-btn.active {
+            background: var(--accent-green);
+            border-color: #2ea043;
+            color: #fff;
+        }
+
+        /* Кнопка запиту */
+        .action-btn {
+            width: 100%;
+            background: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
+        }
+
+        .action-btn:hover {
+            background: var(--accent-green-hover);
+        }
+
+        /* Блок аналізу */
+        .analysis-box {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .signal-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .analysis-details {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Сітка активів */
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .asset-btn {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 6px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .asset-btn.active {
+            background: var(--accent-green);
+            border-color: #2ea043;
+            color: #fff;
+        }
+
+        /* Нижня панель навігації */
+        nav {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 8px;
+        }
+
+        .nav-btn {
+            background: #21262d;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .nav-btn.active {
+            background: var(--accent-green);
+            border-color: #2ea043;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Вкладка 1: Торгівля -->
-    <div id="tab-trade" class="tab-content active">
-        <div class="header">
-            <span>🐼 PANDATRADERS PRO</span>
-            <div class="live-badge"><div class="live-dot"></div> MULTI-TA</div>
-        </div>
+    <header>
+        <div class="logo">🐼 PANDATRADERS PRO</div>
+        <div class="status-badge" id="connStatus">● Готовий</div>
+    </header>
 
-        <div class="volatility-banner">
-            <span>📊 Статус ринку:</span>
-            <span style="color: #2ecc71; font-weight: 600;">🟢 Готовий до роботи</span>
-        </div>
-
+    <!-- Час експірації -->
+    <div class="card">
         <div class="section-title">Час експірації</div>
-        <div class="card">
-            <div class="expiry-grid">
-                <button class="btn-expiry active" data-expiry="1 хв" data-sec="60">1 хв</button>
-                <button class="btn-expiry" data-expiry="5 хв" data-sec="300">5 хв</button>
-                <button class="btn-expiry" data-expiry="15 хв" data-sec="900">15 хв</button>
-                <button class="btn-expiry" data-expiry="30 хв" data-sec="1800">30 хв</button>
-                <button class="btn-expiry" data-expiry="1 год" data-sec="3600">1 год</button>
-            </div>
+        <div class="timeframes-grid" id="tfContainer">
+            <button class="tf-btn" onclick="setExpiry('1 хв')">1 хв</button>
+            <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
+            <button class="tf-btn" onclick="setExpiry('15 хв')">15 хв</button>
+            <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
+            <button class="tf-btn" onclick="setExpiry('1 год')">1 год</button>
         </div>
+    </div>
 
-        <button class="btn-signal" id="btn-get-signal">🔍 ОТРИМАТИ МУЛЬТИ-АНАЛІЗ</button>
+    <!-- Кнопка отримання сигналу -->
+    <button class="action-btn" onclick="fetchSignal()">🔍 Отримати мульті-аналіз</button>
 
-        <div class="card">
-            <div class="section-title" style="text-align: left; margin-bottom: 6px;" id="analysis-subtitle">Глибокий аналіз активу (GBPUSD)</div>
-            <div class="analysis-header">
-                <span id="signal-status">Очікування команди...</span>
-                <span id="signal-price" style="color: #899bb1; font-size: 13px;">Ціна: --</span>
-            </div>
-            <div class="analysis-desc" id="signal-desc">
-                Оберіть актив та натисніть кнопку отримання аналізу...
-            </div>
+    <!-- Глибокий аналіз активу -->
+    <div class="card">
+        <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
+        <div class="analysis-box">
+            <div class="signal-title" id="signalOutput">⏳ Натисніть кнопку для аналізу...</div>
+            <div class="analysis-details" id="detailsOutput">Виберіть актив та натисніть отримання сигналу для перевірки ринку.</div>
         </div>
+    </div>
 
-        <div class="timer-card" id="timer-card">
-            <div class="timer-title" id="timer-title-text">Угода в процесі експірації</div>
-            <div class="timer-countdown" id="countdown">00:00</div>
-            
-            <div class="result-box" id="result-box">
-                <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Час вийшов! Яким був результат?</div>
-                <div class="result-btns">
-                    <button class="btn-win" id="btn-win">✅ ПЛЮС</button>
-                    <button class="btn-loss" id="btn-loss">❌ МІНУС</button>
-                </div>
-            </div>
-        </div>
-
+    <!-- Вибір активу -->
+    <div class="card">
         <div class="section-title">Оберіть актив</div>
-        <div class="card">
-            <div class="assets-grid">
-                <button class="btn-asset active" data-asset="GBPUSD">GBPUSD</button>
-                <button class="btn-asset" data-asset="EURUSD">EURUSD</button>
-                <button class="btn-asset" data-asset="USDJPY">USDJPY</button>
-                <button class="btn-asset" data-asset="AUDUSD">AUDUSD</button>
-                <button class="btn-asset" data-asset="USDCAD">USDCAD</button>
-                <button class="btn-asset" data-asset="USDCHF">USDCHF</button>
-                <button class="btn-asset" data-asset="NZDUSD">NZDUSD</button>
-                <button class="btn-asset" data-asset="EURGBP">EURGBP</button>
-                <button class="btn-asset" data-asset="EURJPY">EURJPY</button>
-                <button class="btn-asset" data-asset="GBPJPY">GBPJPY</button>
-                <button class="btn-asset" data-asset="EURAUD">EURAUD</button>
-                <button class="btn-asset" data-asset="CADCHF">CADCHF</button>
-                <button class="btn-asset" data-asset="EURCHF">EURCHF</button>
-                <button class="btn-asset" data-asset="GBPCAD">GBPCAD</button>
-                <button class="btn-asset" data-asset="CADJPY">CADJPY</button>
-                <button class="btn-asset" data-asset="AUDCAD">AUDCAD</button>
-                <button class="btn-asset" data-asset="AUDCHF">AUDCHF</button>
-                <button class="btn-asset" data-asset="AUDJPY">AUDJPY</button>
-                <button class="btn-asset" data-asset="GBPAUD">GBPAUD</button>
-                <button class="btn-asset" data-asset="XAUUSD">XAUUSD</button>
-            </div>
+        <div class="assets-grid" id="assetsContainer">
+            <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
+            <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
+            <button class="asset-btn" onclick="setAsset('USDJPY')">USDJPY</button>
+            <button class="asset-btn" onclick="setAsset('AUDUSD')">AUDUSD</button>
+            <button class="asset-btn" onclick="setAsset('USDCAD')">USDCAD</button>
+            <button class="asset-btn" onclick="setAsset('USDCHF')">USDCHF</button>
+            <button class="asset-btn" onclick="setAsset('NZDUSD')">NZDUSD</button>
+            <button class="asset-btn" onclick="setAsset('EURGBP')">EURGBP</button>
+            <button class="asset-btn" onclick="setAsset('EURJPY')">EURJPY</button>
+            <button class="asset-btn" onclick="setAsset('CHFJPY')">CHFJPY</button>
+            <button class="asset-btn" onclick="setAsset('GBPCHF')">GBPCHF</button>
+            <button class="asset-btn" onclick="setAsset('XAUUSD')">XAUUSD</button>
         </div>
     </div>
 
-    <!-- Вкладка 2: Статистика -->
-    <div id="tab-stats" class="tab-content">
-        <div class="header"><span>📊 СТАТИСТИКА ТОРГІВ</span></div>
-        <div class="card">
-            <div class="analysis-header">Ваша постійна історія:</div>
-            <div class="analysis-desc" style="margin-top: 10px; font-size: 14px; color: #ffffff;" id="stats-content">
-                ✅ Успішних (Плюс): <b style="color: #2ecc71;" id="stat-wins">0</b><br>
-                ❌ Невдалих (Мінус): <b style="color: #e74c3c;" id="stat-losses">0</b><br>
-                📈 Прохідність (WinRate): <b style="color: #2ecc71;" id="stat-winrate">0%</b><br>
-                ⭐️ Всього угод: <b id="stat-total">0</b>
-            </div>
-            <button class="btn-reset" id="btn-reset">🔄 СКИНУТИ СТАТИСТИКУ</button>
-        </div>
-    </div>
-
-    <!-- Нижня навігація (тільки Торгівля та Статистика) -->
-    <div class="nav-bar">
-        <button class="nav-btn active" id="nav-trade" data-tab="trade">🟢 ТОРГІВЛЯ</button>
-        <button class="nav-btn" id="nav-stats" data-tab="stats">📊 СТАТИСТИКА</button>
-    </div>
+    <!-- Навігація -->
+    <nav>
+        <button class="nav-btn active">📊 Торгівля</button>
+        <button class="nav-btn" onclick="alert('Статистику можна відстежувати утилітою або оновлювати сесію.')">📈 Статистика</button>
+    </nav>
 
     <script>
-        let selectedAsset = 'GBPUSD';
-        let selectedExpiry = '1 хв';
-        let selectedSeconds = 60;
-        let timerInterval = null;
+        let currentSymbol = 'GBPUSD';
+        let currentExpiry = '5 хв';
 
-        let userId = 'default_user';
-        try {
-            const tg = window.Telegram.WebApp;
-            if (tg) {
-                tg.expand();
-                if (tg.ready) tg.ready();
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
-                    userId = String(tg.initDataUnsafe.user.id);
-                }
-            }
-        } catch(e) {}
-
-        if (userId === 'default_user') {
-            userId = localStorage.getItem('panda_user_id');
-            if (!userId) {
-                userId = 'user_' + Math.random().toString(36).substring(2, 11);
-                localStorage.setItem('panda_user_id', userId);
-            }
+        function setExpiry(tf) {
+            currentExpiry = tf;
+            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
         }
 
-        function loadStats() {
-            fetch('/api/stats/get', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(res => res.json())
-            .then(data => {
-                updateStatsUI(data.wins, data.losses);
-            })
-            .catch(err => {});
-        }
-        loadStats();
-
-        // Вибір активу
-        document.querySelectorAll('.btn-asset').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.btn-asset').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                selectedAsset = this.getAttribute('data-asset');
-                document.getElementById('analysis-subtitle').innerText = `Глибокий аналіз активу (${selectedAsset})`;
-            });
-        });
-
-        // Вибір експірації
-        document.querySelectorAll('.btn-expiry').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.btn-expiry').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                selectedExpiry = this.getAttribute('data-expiry');
-                selectedSeconds = parseInt(this.getAttribute('data-sec'));
-            });
-        });
-
-        // Перемикання вкладок
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const tabName = this.getAttribute('data-tab');
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                
-                if (tabName === 'trade') {
-                    document.getElementById('tab-trade').classList.add('active');
-                    document.getElementById('nav-trade').classList.add('active');
-                } else if (tabName === 'stats') {
-                    document.getElementById('tab-stats').classList.add('active');
-                    document.getElementById('nav-stats').classList.add('active');
-                }
-            });
-        });
-
-        // Запит мульти-аналізу
-        document.getElementById('btn-get-signal').addEventListener('click', function() {
-            const statusEl = document.getElementById('signal-status');
-            const priceEl = document.getElementById('signal-price');
-            const descEl = document.getElementById('signal-desc');
-            const timerCard = document.getElementById('timer-card');
-            const resultBox = document.getElementById('result-box');
-            const countdownEl = document.getElementById('countdown');
-
-            statusEl.innerText = "Оновлення котирувань...";
-            priceEl.innerText = "Ціна: --";
-            descEl.innerText = `Збір актуальних даних для ${selectedAsset} (${selectedExpiry})...`;
-
-            if (timerInterval) clearInterval(timerInterval);
-            timerCard.style.display = 'block';
-            resultBox.style.display = 'none';
-            countdownEl.style.display = 'block';
-
-            fetch('/api/signal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: selectedAsset, expiry: selectedExpiry })
-            })
-            .then(response => response.json())
-            .then(data => {
-                statusEl.innerText = data.signal;
-                priceEl.innerText = `Ціна: ${data.price}`;
-                descEl.innerText = data.details;
-                startTimer(selectedSeconds);
-            })
-            .catch(error => {
-                statusEl.innerText = "⚠️ ПОМИЛКА";
-                descEl.innerText = "Не вдалося отримати ринкові дані.";
-                timerCard.style.display = 'none';
-            });
-        });
-
-        function startTimer(durationInSeconds) {
-            const countdownEl = document.getElementById('countdown');
-            const resultBox = document.getElementById('result-box');
-
-            if (timerInterval) clearInterval(timerInterval);
-
-            const endTime = Date.now() + durationInSeconds * 1000;
-
-            timerInterval = setInterval(function () {
-                const now = Date.now();
-                const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
-
-                let minutes = Math.floor(timeLeft / 60);
-                let seconds = timeLeft % 60;
-
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-
-                countdownEl.innerText = minutes + ":" + seconds;
-
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    countdownEl.style.display = 'none';
-                    resultBox.style.display = 'block';
-                }
-            }, 1000);
+        function setAsset(symbol) {
+            currentSymbol = symbol;
+            document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${symbol})`;
+            fetchSignal();
         }
 
-        document.getElementById('btn-win').addEventListener('click', function() { recordResult('win'); });
-        document.getElementById('btn-loss').addEventListener('click', function() { recordResult('loss'); });
+        async function fetchSignal() {
+            const signalEl = document.getElementById('signalOutput');
+            const detailsEl = document.getElementById('detailsOutput');
+            const statusEl = document.getElementById('connStatus');
 
-        function recordResult(type) {
-            fetch('/api/stats/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, type: type })
-            })
-            .then(res => res.json())
-            .then(data => {
-                updateStatsUI(data.wins, data.losses);
-                document.getElementById('timer-card').style.display = 'none';
-            });
-        }
+            signalEl.innerHTML = "⏳ Аналізуємо ринок...";
+            detailsEl.innerHTML = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
+            statusEl.innerText = "● Аналіз...";
+            statusEl.style.color = "#d29922";
 
-        document.getElementById('btn-reset').addEventListener('click', function() {
-            if (confirm("Ви дійсно хочете скинути всю статистику?")) {
-                fetch('/api/stats/reset', {
+            try {
+                const response = await fetch('/api/signal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    updateStatsUI(data.wins, data.losses);
+                    body: JSON.stringify({ symbol: currentSymbol, expiry: currentExpiry })
                 });
+
+                const data = await response.json();
+                signalEl.innerHTML = data.signal;
+                detailsEl.innerHTML = `${data.details} (Ціна: ${data.price})`;
+                
+                statusEl.innerText = "● Готовий";
+                statusEl.style.color = "#3fb950";
+            } catch (error) {
+                signalEl.innerHTML = "⚠️ ПОМИЛКА ШЛЮЗУ";
+                detailsEl.innerHTML = "Не вдалося отримати відповідь від сервера. Спробуйте ще раз.";
+                statusEl.innerText = "● Збій";
+                statusEl.style.color = "#da3633";
             }
-        });
-
-        function updateStatsUI(wins, losses) {
-            document.getElementById('stat-wins').innerText = wins;
-            document.getElementById('stat-losses').innerText = losses;
-            
-            let total = wins + losses;
-            document.getElementById('stat-total').innerText = total;
-
-            let winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
-            document.getElementById('stat-winrate').innerText = winRate + '%';
         }
     </script>
 </body>
