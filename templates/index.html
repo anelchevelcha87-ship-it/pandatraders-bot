@@ -186,7 +186,6 @@
             color: #fff;
         }
 
-        /* Кнопки фіксації результату угоди */
         .trade-result-box {
             display: none;
             margin-top: 10px;
@@ -196,7 +195,6 @@
         .win-btn { background: #238636; color: #fff; border: none; padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; }
         .loss-btn { background: #da3633; color: #fff; border: none; padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; }
 
-        /* Панель статистики */
         .stats-view {
             display: none;
         }
@@ -257,7 +255,7 @@
             <div class="section-title">Час експірації</div>
             <div class="timeframes-grid" id="tfContainer">
                 <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
-                <button class="tf-btn" onclick="setExpiry('10 хв')">10 хв</button>
+                <button class="tf-btn" onclick="setExpiry('15 хв')">15 хв</button>
                 <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
                 <button class="tf-btn" onclick="setExpiry('1 год')">1 год</button>
             </div>
@@ -266,12 +264,11 @@
         <button class="action-btn" onclick="fetchSignal()">🔍 Отримати мульті-аналіз</button>
 
         <div class="card">
-            <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
+            <div class="section-title" id="activeTitle">Глибокий аналіз активу (EURUSD)</div>
             <div class="analysis-box">
                 <div class="signal-title" id="signalOutput">⏳ Очікування вибору...</div>
                 <div class="analysis-details" id="detailsOutput">Оберіть час експірації, пару та натисніть кнопку «Отримати мульті-аналіз».</div>
                 
-                <!-- Інтерактивні кнопки результату угоди -->
                 <div class="trade-result-box" id="tradeResultBox">
                     <button class="win-btn" onclick="updateStats('win')">✅ Профіт (+)</button>
                     <button class="loss-btn" onclick="updateStats('loss')">❌ Збиток (-)</button>
@@ -282,8 +279,8 @@
         <div class="card">
             <div class="section-title">Оберіть актив (19 пар)</div>
             <div class="assets-grid" id="assetsContainer">
-                <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
-                <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
+                <button class="asset-btn active" onclick="setAsset('EURUSD')">EURUSD</button>
+                <button class="asset-btn" onclick="setAsset('GBPUSD')">GBPUSD</button>
                 <button class="asset-btn" onclick="setAsset('USDJPY')">USDJPY</button>
                 <button class="asset-btn" onclick="setAsset('AUDUSD')">AUDUSD</button>
                 <button class="asset-btn" onclick="setAsset('USDCAD')">USDCAD</button>
@@ -322,7 +319,7 @@
     </nav>
 
     <script>
-        let currentSymbol = 'GBPUSD';
+        let currentSymbol = 'EURUSD';
         let currentExpiry = '5 хв';
         const userId = 'default_user';
 
