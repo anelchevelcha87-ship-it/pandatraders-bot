@@ -23,7 +23,6 @@ def init_db():
 init_db()
 
 TIMEFRAME_MAP = {
-    '1 хв': Interval.INTERVAL_1_MINUTE,
     '5 хв': Interval.INTERVAL_5_MINUTES,
     '15 хв': Interval.INTERVAL_15_MINUTES,
     '30 хв': Interval.INTERVAL_30_MINUTES,
@@ -44,7 +43,7 @@ def get_safe_analysis(symbol, screener, exchange, interval, retries=3):
         except Exception as e:
             if attempt == retries - 1:
                 raise e
-            sleep_time = (attempt + 1) * 2 + random.uniform(0.5, 1.5)
+            sleep_time = (attempt + 1) * 2.5 + random.uniform(1.0, 2.0)
             time.sleep(sleep_time)
 
 @app.route('/')
@@ -62,14 +61,7 @@ def get_signal():
 
     try:
         analysis = get_safe_analysis(symbol, screener, exchange, interval)
-        time.sleep(random.uniform(0.3, 0.7))
-
-        higher_rec = "NEUTRAL"
-        try:
-            higher_analysis = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2)
-            higher_rec = higher_analysis.summary.get("RECOMMENDATION", "NEUTRAL")
-        except Exception:
-            pass 
+        time.sleep(random.uniform(0.4, 0.8))
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
@@ -80,21 +72,16 @@ def get_signal():
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
         
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
-        trend_desc = "висхідний (BUY)" if "BUY" in higher_rec else ("низхідний (SELL)" if "SELL" in higher_rec else "нейтральний")
-        
         is_bullish_macd = macd_val >= macd_signal
-        is_bearish_macd = macd_val < macd_signal
 
-        # М'які та чутливі умови для активної видачі сигналів
-        is_buy = "BUY" in recommendation or "STRONG_BUY" in recommendation or (is_bullish_macd and rsi < 70)
-        is_sell = "SELL" in recommendation or "STRONG_SELL" in recommendation or (is_bearish_macd and rsi > 30)
+        is_buy = "BUY" in recommendation or "STRONG_BUY" in recommendation or (is_bullish_macd and rsi < 65)
+        is_sell = "SELL" in recommendation or "STRONG_SELL" in recommendation or (not is_bullish_macd and rsi > 35)
 
         if is_buy and not is_sell:
             signal_text = "🔥 СИГНАЛ: 📈 ВГОРУ (CALL)"
         elif is_sell and not is_buy:
             signal_text = "🔥 СИГНАЛ: 📉 ВНИЗ (PUT)"
         else:
-            # Навіть у нейтральних зонах даємо орієнтир за базовою рекомендацією
             if "BUY" in recommendation:
                 signal_text = "🟢 📈 ВГОРУ (CALL - по тренду)"
             elif "SELL" in recommendation:
@@ -104,8 +91,8 @@ def get_signal():
 
         details_text = (
             f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Stoch %K: {stoch_k} | MACD імпульс: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
-            f"Тренд 15хв: {trend_desc}."
+            f"Stoch %K: {stoch_k} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
+            f"Рекомендація: {recommendation}."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -114,7 +101,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Тимчасовий ліміт шлюзу. Спробуйте ще раз. ({str(e)[:30]})"
+            'details': f"Захист від частоти запитів. Зачекайте 5 сек. ({str(e)[:35]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
@@ -167,4 +154,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-        
+    
