@@ -29,7 +29,7 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            padding: 8px;
+            padding: 10px;
             max-width: 480px;
             margin: 0 auto;
         }
@@ -40,13 +40,13 @@
             align-items: center;
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            padding: 8px 12px;
+            padding: 10px 14px;
             border-radius: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .logo {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: #fff;
             display: flex;
@@ -55,7 +55,7 @@
         }
 
         .status-badge {
-            font-size: 10px;
+            font-size: 11px;
             color: #3fb950;
             background: rgba(63, 185, 80, 0.1);
             padding: 3px 6px;
@@ -67,15 +67,15 @@
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
         }
 
         .section-title {
-            font-size: 10px;
+            font-size: 11px;
             text-transform: uppercase;
             color: var(--text-muted);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             letter-spacing: 0.5px;
             display: flex;
             justify-content: space-between;
@@ -89,8 +89,8 @@
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 8px 12px;
-            margin-bottom: 6px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
             font-size: 12px;
         }
 
@@ -105,17 +105,17 @@
         .timeframes-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 4px;
+            gap: 6px;
         }
 
         .tf-btn {
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 5px 2px;
-            font-size: 11px;
+            padding: 8px 4px;
+            font-size: 12px;
             font-weight: 600;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             text-align: center;
         }
@@ -131,12 +131,12 @@
             background: var(--accent-green);
             color: white;
             border: none;
-            padding: 10px;
-            font-size: 13px;
+            padding: 12px;
+            font-size: 14px;
             font-weight: 700;
             border-radius: 6px;
             cursor: pointer;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
             text-align: center;
             box-shadow: 0 3px 10px rgba(35, 134, 54, 0.3);
         }
@@ -145,44 +145,44 @@
             background: var(--accent-green-hover);
         }
 
+        /* Збільшений блок глибокого аналізу */
         .analysis-box {
             background: #090d16;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 8px;
+            padding: 12px;
+            min-height: 85px;
         }
 
         .signal-title {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            margin-bottom: 4px;
-            padding-bottom: 4px;
+            margin-bottom: 6px;
+            padding-bottom: 6px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .analysis-details {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-muted);
-            line-height: 1.3;
+            line-height: 1.45;
         }
 
+        /* Відкриті великі кнопки для всіх 19 пар без скролу */
         .assets-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-            max-height: 155px;
-            overflow-y: auto;
-            padding-right: 2px;
+            gap: 6px;
         }
 
         .asset-btn {
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 5px 2px;
-            font-size: 11px;
+            padding: 9px 6px;
+            font-size: 12px;
             font-weight: 600;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             text-align: center;
             text-transform: uppercase;
@@ -197,16 +197,17 @@
         nav {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px;
+            gap: 8px;
             margin-top: auto;
+            padding-top: 4px;
         }
 
         .nav-btn {
             background: #21262d;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 7px;
-            font-size: 11px;
+            padding: 10px;
+            font-size: 12px;
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -302,7 +303,6 @@
             document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${symbol})`;
-            // Запит тут НЕ виконується — чекаємо натискання кнопки «Отримати мульті-аналіз»
         }
 
         async function fetchSignal() {
