@@ -72,42 +72,44 @@ def get_signal():
             pass 
 
         current_price = round(analysis.indicators.get("close", 0.0), 5)
+        open_price = round(analysis.indicators.get("open", current_price), 5)
+        high_price = round(analysis.indicators.get("high", current_price), 5)
+        low_price = round(analysis.indicators.get("low", current_price), 5)
+        
         recommendation = analysis.summary.get("RECOMMENDATION", "NEUTRAL")
         
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
-        stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
         
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
-        trend_desc = "висхідний (BUY)" if "BUY" in higher_rec else ("низхідний (SELL)" if "SELL" in higher_rec else "нейтральний")
         
         is_bullish_macd = macd_val >= macd_signal
         is_bearish_macd = macd_val < macd_signal
 
-        # Збалансована та чутлива логіка без зайвих перешкод
-        # Якщо TradingView дає загальну рекомендацію BUY/STRONG_BUY або підтверджується імпульс
-        is_buy_signal = ("BUY" in recommendation or "STRONG_BUY" in recommendation or (is_bullish_macd and rsi < 65)) and stoch_k < 85
-        is_sell_signal = ("SELL" in recommendation or "STRONG_SELL" in recommendation or (is_bearish_macd and rsi > 35)) and stoch_k > 15
+        # Визначення реакції від зон (підтримка / опір через свічкові екстремуми та перепроданість/перекупленість)
+        is_near_support = rsi < 38 or stoch_k < 25
+        is_near_resistance = rsi > 62 or stoch_k > 75
 
-        if is_buy_signal and not is_sell_signal:
-            if "BUY" in higher_rec:
-                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+        # Логіка сигналів з урахуванням відскоків від локальних зон
+        if (is_near_support and is_bullish_macd) or ("BUY" in recommendation or "STRONG_BUY" in recommendation):
+            if rsi < 40:
+                signal_text = "🔥 ЗОНА ПІДТРИМКИ: 📈 ВГОРУ (CALL - відскік)"
             else:
-                signal_text = "🟢 📈 ВГОРУ (CALL - робочий)"
-        elif is_sell_signal and not is_buy_signal:
-            if "SELL" in higher_rec:
-                signal_text = "🔥 СИЛЬНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+                signal_text = "🟢 📈 ВГОРУ (CALL - трендовий)"
+        elif (is_near_resistance and is_bearish_macd) or ("SELL" in recommendation or "STRONG_SELL" in recommendation):
+            if rsi > 60:
+                signal_text = "🔥 ЗОНА ОПОРУ: 📉 ВНИЗ (PUT - відскік)"
             else:
-                signal_text = "🔴 📉 ВНИЗ (PUT - робочий)"
+                signal_text = "🔴 📉 ВНИЗ (PUT - трендовий)"
         else:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: НЕВИЗНАЧЕНІСТЬ (Зачекайте імпульсу)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
         details_text = (
-            f"Аналіз {symbol}: Ціна {current_price}. RSI: {rsi} ({rsi_status}). "
-            f"Stoch (%K: {stoch_k}). Тренд 15м: {trend_desc}. "
-            f"Рекомендація шлюзу: {recommendation}."
+            f"Актив: {symbol} | Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
+            f"Stoch %K: {stoch_k} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
+            f"Реакція від зони активна."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -116,7 +118,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ", 
             'price': "--", 
-            'details': f"Тимчасовий ліміт шлюзу. Спробуйте ще раз. ({str(e)[:30]})"
+            'details': f"Тимчасовий ліміт шлюзу. ({str(e)[:30]})"
         })
 
 @app.route('/api/stats/get', methods=['POST'])
