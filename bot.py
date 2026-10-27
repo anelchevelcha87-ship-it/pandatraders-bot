@@ -65,33 +65,32 @@ def get_signal():
         rsi = round(analysis.indicators.get("RSI", 50.0), 2)
         macd_val = round(analysis.indicators.get("MACD.macd", 0.0), 4)
         macd_signal = round(analysis.indicators.get("MACD.signal", 0.0), 4)
-        
         stoch_k = round(analysis.indicators.get("Stoch.K", 50.0), 2)
-        stoch_d = round(analysis.indicators.get("Stoch.D", 50.0), 2)
         
         rsi_status = "перекупленість (>70)" if rsi > 70 else ("перепроданість (<30)" if rsi < 30 else "робоча зона")
         trend_desc = "висхідний" if "BUY" in higher_rec else ("низхідний" if "SELL" in higher_rec else "невизначений")
         
         is_bullish_macd = macd_val > macd_signal
         is_bearish_macd = macd_val < macd_signal
-        
-        # Суворіші перевірки стохастика проти розворотів у пастці
-        # Забороняємо SELL, якщо стохастик у низу (< 30) або вже перетинається вгору
-        # Забороняємо BUY, якщо стохастик у верху (> 70) або вже перетинається вниз
-        stoch_sell_safe = stoch_k > 30 and stoch_k < 85 and stoch_k < stoch_d
-        stoch_buy_safe = stoch_k < 70 and stoch_k > 15 and stoch_k > stoch_d
 
-        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and ("BUY" in higher_rec or "STRONG_BUY" in higher_rec) and is_bullish_macd and stoch_buy_safe and rsi < 68:
-            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
-        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and ("SELL" in higher_rec or "STRONG_SELL" in higher_rec) and is_bearish_macd and stoch_sell_safe and rsi > 32:
-            signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+        # Збалансована логіка: чіткі сигнали без надмірного блокування
+        if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and is_bullish_macd and rsi < 72 and stoch_k < 85:
+            if "BUY" in higher_rec:
+                signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
+            else:
+                signal_text = "🟢 📈 ВГОРУ (CALL - помірний)"
+        elif ("SELL" in recommendation or "STRONG_SELL" in recommendation) and is_bearish_macd and rsi > 28 and stoch_k > 15:
+            if "SELL" in higher_rec:
+                signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📉 ВНИЗ (PUT)"
+            else:
+                signal_text = "🔴 📉 ВНИЗ (PUT - помірний)"
         else:
-            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ (Ризик розвороту)"
+            signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Стохастик: %K={stoch_k}, %D={stoch_d}. "
-            f"Тренд 15хв: {trend_desc}. Захист від V-подібних розворотів активовано."
+            f"Стохастик: {stoch_k} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
+            f"Тренд 15хв: {trend_desc}."
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
