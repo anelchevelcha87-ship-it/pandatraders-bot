@@ -43,6 +43,7 @@ def get_signal():
     data = request.get_json() or {}
     symbol = data.get('symbol', 'GBPUSD')
     expiry = data.get('expiry', '5 хв')
+    user_id = str(data.get('user_id', 'default_user'))
 
     screener, exchange = get_exchange_and_screener(symbol)
     interval = TIMEFRAME_MAP.get(expiry, Interval.INTERVAL_5_MINUTES)
@@ -73,7 +74,7 @@ def get_signal():
         is_bullish_macd = macd_val > macd_signal
         is_bearish_macd = macd_val < macd_signal
 
-        # Збалансована логіка: чіткі сигнали без надмірного блокування
+        # Збалансована робоча логіка для 5 хв
         if ("BUY" in recommendation or "STRONG_BUY" in recommendation) and is_bullish_macd and rsi < 72 and stoch_k < 85:
             if "BUY" in higher_rec:
                 signal_text = "🔥 ТОЧНИЙ СИГНАЛ: 📈 ВГОРУ (CALL)"
@@ -87,10 +88,22 @@ def get_signal():
         else:
             signal_text = "⚪️ ⚖️ ФІЛЬТР РИНКУ: УТРИМАТИСЬ ВІД УГОДИ"
 
+        # Отримуємо поточну статистику гравця з бази для підрахунку winrate
+        conn = sqlite3.connect('trading_stats.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT wins, losses FROM stats WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        wins = row[0] if row else 0
+        losses = row[1] if row else 0
+        total = wins + losses
+        winrate = round((wins / total * 100), 1) if total > 0 else 0.0
+
         details_text = (
             f"Ціна: {current_price} | RSI: {rsi} ({rsi_status}). "
-            f"Стохастик: {stoch_k} | MACD: {'бичачий' if is_bullish_macd else 'ведмежий'}. "
-            f"Тренд 15хв: {trend_desc}."
+            f"Тренд 15хв: {trend_desc}. "
+            f"Ваша статистика: {wins}П / {losses}М (Winrate: {winrate}%)"
         )
 
         return jsonify({'signal': signal_text, 'price': str(current_price), 'details': details_text})
@@ -152,4 +165,3 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
