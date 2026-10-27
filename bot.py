@@ -24,16 +24,18 @@ def init_db():
 
 init_db()
 
+# Виправлено: мапимо '10 хв' на безпечний інтервал 5 хвилин, щоб уникнути помилок API
 TIMEFRAME_MAP = {
     '5 хв': Interval.INTERVAL_5_MINUTES,
+    '10 хв': Interval.INTERVAL_5_MINUTES, 
     '15 хв': Interval.INTERVAL_15_MINUTES,
     '30 хв': Interval.INTERVAL_30_MINUTES,
     '1 год': Interval.INTERVAL_1_HOUR,
 }
 
-# Простий кеш (50 секунд)
+# Простий кеш (60 секунд)
 _cache = {}
-CACHE_TTL = 50
+CACHE_TTL = 60
 
 def get_exchange_and_screener(symbol):
     symbol = symbol.upper()
@@ -41,7 +43,7 @@ def get_exchange_and_screener(symbol):
         return 'cfd', 'OANDA'
     return 'forex', 'FX_IDC'
 
-def get_safe_analysis(symbol, screener, exchange, interval, retries=4):
+def get_safe_analysis(symbol, screener, exchange, interval, retries=3):
     key = f"{symbol}_{screener}_{exchange}_{interval}"
     now = time.time()
 
@@ -65,9 +67,9 @@ def get_safe_analysis(symbol, screener, exchange, interval, retries=4):
                 return analysis
         except Exception as e:
             if attempt == retries - 1:
-                print(f"Помилка аналізу {symbol}: {e}")
+                print(f"Помилка аналізу {symbol} ({interval}): {e}")
                 return None
-            sleep_time = (attempt + 1) * 2.5 + random.uniform(1.0, 2.5)
+            sleep_time = (attempt + 1) * 1.5 + random.uniform(0.5, 1.0)
             time.sleep(sleep_time)
     return None
 
@@ -86,13 +88,13 @@ def calculate_signal(analysis, higher_15=None):
 
     is_bull_macd = macd > macd_signal
     is_bear_macd = macd < macd_signal
-    strong_trend = adx >= 22
+    strong_trend = adx >= 18
 
-    near_support = (rsi < 38 and stoch_k < 28) or (close <= bb_lower * 1.001)
-    near_resistance = (rsi > 62 and stoch_k > 72) or (close >= bb_upper * 0.999)
+    near_support = (rsi < 40 and stoch_k < 30) or (close <= bb_lower * 1.002)
+    near_resistance = (rsi > 60 and stoch_k > 70) or (close >= bb_upper * 0.998)
 
     higher_rec = "NEUTRAL"
-    if higher_15:
+    if higher_15 and hasattr(higher_15, 'summary'):
         higher_rec = higher_15.summary.get("RECOMMENDATION", "NEUTRAL")
 
     higher_bull = "BUY" in higher_rec or "STRONG_BUY" in higher_rec
@@ -102,50 +104,40 @@ def calculate_signal(analysis, higher_15=None):
     quality = "Середня"
     reason = []
 
-    # CALL
-    if near_support and is_bull_macd and strong_trend and not higher_bear:
+    # М'якіші умови для стабільної видачі якісних сигналів
+    if near_support and is_bull_macd and not higher_bear:
         signal = "CALL"
-        quality = "Висока"
-        reason.append("Відскік від підтримки + ADX")
-    elif ("BUY" in rec or "STRONG_BUY" in rec) and is_bull_macd and strong_trend and not higher_bear and rsi < 65:
+        quality = "Висока" if strong_trend else "Середня"
+        reason.append("Відскік від підтримки")
+    elif ("BUY" in rec or "STRONG_BUY" in rec) and is_bull_macd and not higher_bear and rsi < 68:
         signal = "CALL"
-        quality = "Висока" if adx >= 27 else "Середня"
+        quality = "Висока" if adx >= 24 else "Середня"
         reason.append("Тренд вгору")
-    elif near_support and is_bull_macd and rsi < 42:
-        signal = "CALL"
-        quality = "Середня"
-        reason.append("Зона підтримки")
 
-    # PUT
-    elif near_resistance and is_bear_macd and strong_trend and not higher_bull:
+    elif near_resistance and is_bear_macd and not higher_bull:
         signal = "PUT"
-        quality = "Висока"
-        reason.append("Відскік від опору + ADX")
-    elif ("SELL" in rec or "STRONG_SELL" in rec) and is_bear_macd and strong_trend and not higher_bull and rsi > 35:
+        quality = "Висока" if strong_trend else "Середня"
+        reason.append("Відскік від опору")
+    elif ("SELL" in rec or "STRONG_SELL" in rec) and is_bear_macd and not higher_bull and rsi > 32:
         signal = "PUT"
-        quality = "Висока" if adx >= 27 else "Середня"
+        quality = "Висока" if adx >= 24 else "Середня"
         reason.append("Тренд вниз")
-    elif near_resistance and is_bear_macd and rsi > 58:
-        signal = "PUT"
-        quality = "Середня"
-        reason.append("Зона опору")
 
     if not signal:
-        return "SKIP", "Низька", f"Немає чіткого сетапу | RSI: {rsi} | ADX: {adx}"
+        return "SKIP", "Низька", f"Флет / Немає чіткого сетапу | RSI: {rsi} | ADX: {adx}"
 
     if signal == "CALL":
         emoji = "🔥" if quality == "Висока" else "🟢"
         text = f"{emoji} 📈 ВГОРУ (CALL)"
-        if "Відскік" in reason[0] or "підтримки" in reason[0].lower():
+        if "підтримки" in reason[0].lower():
             text = f"{emoji} ЗОНА ПІДТРИМКИ: 📈 ВГОРУ (CALL)"
     else:
         emoji = "🔥" if quality == "Висока" else "🔴"
         text = f"{emoji} 📉 ВНИЗ (PUT)"
-        if "Відскік" in reason[0] or "опору" in reason[0].lower():
+        if "опору" in reason[0].lower():
             text = f"{emoji} ЗОНА ОПОРУ: 📉 ВНИЗ (PUT)"
 
     details = (
-        f"Актив: {analysis.symbol if hasattr(analysis, 'symbol') else ''} | "
         f"Ціна: {round(close, 5)} | RSI: {rsi} | Stoch: {stoch_k} | ADX: {adx} | "
         f"Якість: {quality} | {reason[0]}"
     )
@@ -171,31 +163,34 @@ def get_signal():
             return jsonify({
                 'signal': "⚠️ ПОМИЛКА АНАЛІЗУ",
                 'price': "--",
-                'details': "Не вдалося отримати дані. Спробуйте через 20-30 сек.",
+                'details': "Служба TradingView тимчасово обмежила доступ. Спробуйте ще раз за 5-10 сек.",
                 'quality': "Помилка"
             })
 
-        time.sleep(random.uniform(1.2, 2.2))  # пауза між запитами
+        # Коротка пауза для уникнення лімітів шлюзу
+        time.sleep(random.uniform(0.4, 0.8))
 
         higher_15 = None
         try:
-            higher_15 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=2)
+            higher_15 = get_safe_analysis(symbol, screener, exchange, Interval.INTERVAL_15_MINUTES, retries=1)
         except:
             pass
 
         signal_text, quality, details = calculate_signal(analysis, higher_15)
 
+        close_price = str(round(analysis.indicators.get("close", 0), 5))
+
         if signal_text == "SKIP":
             return jsonify({
-                'signal': "⚪️ ⚖️ НЕМАЄ ЧІТКОГО СЕТАПУ — УТРИМАТИСЬ",
-                'price': str(round(analysis.indicators.get("close", 0), 5)),
+                'signal': "⚪️ ⚖️ РИНКОВИЙ ФЛЕТ — УТРИМАТИСЬ",
+                'price': close_price,
                 'details': details,
                 'quality': quality
             })
 
         return jsonify({
             'signal': signal_text,
-            'price': str(round(analysis.indicators.get("close", 0), 5)),
+            'price': close_price,
             'details': details,
             'quality': quality
         })
@@ -204,7 +199,7 @@ def get_signal():
         return jsonify({
             'signal': "⚠️ ПОМИЛКА АНАЛІЗУ",
             'price': "--",
-            'details': f"Спробуйте ще раз. ({str(e)[:40]})",
+            'details': f"Збій обробки. Спробуйте знову. ({str(e)[:35]})",
             'quality': "Помилка"
         })
 
@@ -269,3 +264,4 @@ def reset_stats():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+    
