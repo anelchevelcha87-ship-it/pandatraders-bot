@@ -49,9 +49,6 @@
             font-size: 14px;
             font-weight: 700;
             color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
         .status-badge {
@@ -77,9 +74,6 @@
             color: var(--text-muted);
             margin-bottom: 6px;
             letter-spacing: 0.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .market-status-box {
@@ -102,7 +96,6 @@
             font-weight: 600;
         }
 
-        /* 4 таймфрейми (без 1 хв) */
         .timeframes-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -146,7 +139,6 @@
             background: var(--accent-green-hover);
         }
 
-        /* Збільшений та відкритий блок глибокого аналізу */
         .analysis-box {
             background: #090d16;
             border: 1px solid var(--border-color);
@@ -169,7 +161,6 @@
             line-height: 1.45;
         }
 
-        /* Всі 19 пар повністю видимі без прокрутки */
         .assets-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -193,6 +184,30 @@
             background: var(--accent-green);
             border-color: #2ea043;
             color: #fff;
+        }
+
+        /* Кнопки фіксації результату угоди */
+        .trade-result-box {
+            display: none;
+            margin-top: 10px;
+            gap: 6px;
+            grid-template-columns: 1fr 1fr;
+        }
+        .win-btn { background: #238636; color: #fff; border: none; padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+        .loss-btn { background: #da3633; color: #fff; border: none; padding: 8px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+
+        /* Панель статистики */
+        .stats-view {
+            display: none;
+        }
+
+        .stats-box {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.6;
         }
 
         nav {
@@ -229,69 +244,87 @@
         <div class="status-badge" id="connStatus">● MULTI-TA</div>
     </header>
 
-    <div class="market-status-box">
-        <span style="color: var(--text-muted); font-size: 11px;">📊 Статус ринку:</span>
-        <div class="market-status-indicator" id="marketStatusText">
-            <span>●</span> Готовий до роботи
+    <!-- ВКЛАДКА: ТОРГІВЛЯ -->
+    <div id="tradeTab">
+        <div class="market-status-box">
+            <span style="color: var(--text-muted); font-size: 11px;">📊 Статус ринку:</span>
+            <div class="market-status-indicator" id="marketStatusText">
+                <span>●</span> Готовий до роботи
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Час експірації</div>
+            <div class="timeframes-grid" id="tfContainer">
+                <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
+                <button class="tf-btn" onclick="setExpiry('10 хв')">10 хв</button>
+                <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
+                <button class="tf-btn" onclick="setExpiry('1 год')">1 год</button>
+            </div>
+        </div>
+
+        <button class="action-btn" onclick="fetchSignal()">🔍 Отримати мульті-аналіз</button>
+
+        <div class="card">
+            <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
+            <div class="analysis-box">
+                <div class="signal-title" id="signalOutput">⏳ Очікування вибору...</div>
+                <div class="analysis-details" id="detailsOutput">Оберіть час експірації, пару та натисніть кнопку «Отримати мульті-аналіз».</div>
+                
+                <!-- Інтерактивні кнопки результату угоди -->
+                <div class="trade-result-box" id="tradeResultBox">
+                    <button class="win-btn" onclick="updateStats('win')">✅ Профіт (+)</button>
+                    <button class="loss-btn" onclick="updateStats('loss')">❌ Збиток (-)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Оберіть актив (19 пар)</div>
+            <div class="assets-grid" id="assetsContainer">
+                <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
+                <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
+                <button class="asset-btn" onclick="setAsset('USDJPY')">USDJPY</button>
+                <button class="asset-btn" onclick="setAsset('AUDUSD')">AUDUSD</button>
+                <button class="asset-btn" onclick="setAsset('USDCAD')">USDCAD</button>
+                <button class="asset-btn" onclick="setAsset('USDCHF')">USDCHF</button>
+                <button class="asset-btn" onclick="setAsset('NZDUSD')">NZDUSD</button>
+                <button class="asset-btn" onclick="setAsset('EURGBP')">EURGBP</button>
+                <button class="asset-btn" onclick="setAsset('EURJPY')">EURJPY</button>
+                <button class="asset-btn" onclick="setAsset('GBPAUD')">GBPAUD</button>
+                <button class="asset-btn" onclick="setAsset('CHFJPY')">CHFJPY</button>
+                <button class="asset-btn" onclick="setAsset('GBPCHF')">GBPCHF</button>
+                <button class="asset-btn" onclick="setAsset('AUDJPY')">AUDJPY</button>
+                <button class="asset-btn" onclick="setAsset('AUDCHF')">AUDCHF</button>
+                <button class="asset-btn" onclick="setAsset('EURCHF')">EURCHF</button>
+                <button class="asset-btn" onclick="setAsset('AUDCAD')">AUDCAD</button>
+                <button class="asset-btn" onclick="setAsset('CADJPY')">CADJPY</button>
+                <button class="asset-btn" onclick="setAsset('CADCHF')">CADCHF</button>
+                <button class="asset-btn" onclick="setAsset('GBPCAD')">GBPCAD</button>
+            </div>
         </div>
     </div>
 
-    <!-- Час експірації (без 1 хв) -->
-    <div class="card">
-        <div class="section-title">Час експірації</div>
-        <div class="timeframes-grid" id="tfContainer">
-            <button class="tf-btn active" onclick="setExpiry('5 хв')">5 хв</button>
-            <button class="tf-btn" onclick="setExpiry('10 хв')">10 хв</button>
-            <button class="tf-btn" onclick="setExpiry('30 хв')">30 хв</button>
-            <button class="tf-btn" onclick="setExpiry('1 год')">1 год</button>
+    <!-- ВКЛАДКА: СТАТИСТИКА -->
+    <div id="statsTab" class="stats-view">
+        <div class="card">
+            <div class="section-title">📊 Статистика ваших сесій</div>
+            <div class="stats-box" id="statsContent">
+                Завантаження статистики...
+            </div>
         </div>
-    </div>
-
-    <button class="action-btn" onclick="fetchSignal()">🔍 Отримати мульті-аналіз</button>
-
-    <div class="card">
-        <div class="section-title" id="activeTitle">Глибокий аналіз активу (GBPUSD)</div>
-        <div class="analysis-box">
-            <div class="signal-title" id="signalOutput">⏳ Очікування вибору...</div>
-            <div class="analysis-details" id="detailsOutput">Оберіть час експірації, пару та натисніть кнопку «Отримати мульті-аналіз».</div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="section-title">
-            <span>Оберіть актив (19 пар)</span>
-        </div>
-        <div class="assets-grid" id="assetsContainer">
-            <button class="asset-btn active" onclick="setAsset('GBPUSD')">GBPUSD</button>
-            <button class="asset-btn" onclick="setAsset('EURUSD')">EURUSD</button>
-            <button class="asset-btn" onclick="setAsset('USDJPY')">USDJPY</button>
-            <button class="asset-btn" onclick="setAsset('AUDUSD')">AUDUSD</button>
-            <button class="asset-btn" onclick="setAsset('USDCAD')">USDCAD</button>
-            <button class="asset-btn" onclick="setAsset('USDCHF')">USDCHF</button>
-            <button class="asset-btn" onclick="setAsset('NZDUSD')">NZDUSD</button>
-            <button class="asset-btn" onclick="setAsset('EURGBP')">EURGBP</button>
-            <button class="asset-btn" onclick="setAsset('EURJPY')">EURJPY</button>
-            <button class="asset-btn" onclick="setAsset('GBPAUD')">GBPAUD</button>
-            <button class="asset-btn" onclick="setAsset('CHFJPY')">CHFJPY</button>
-            <button class="asset-btn" onclick="setAsset('GBPCHF')">GBPCHF</button>
-            <button class="asset-btn" onclick="setAsset('AUDJPY')">AUDJPY</button>
-            <button class="asset-btn" onclick="setAsset('AUDCHF')">AUDCHF</button>
-            <button class="asset-btn" onclick="setAsset('EURCHF')">EURCHF</button>
-            <button class="asset-btn" onclick="setAsset('AUDCAD')">AUDCAD</button>
-            <button class="asset-btn" onclick="setAsset('CADJPY')">CADJPY</button>
-            <button class="asset-btn" onclick="setAsset('CADCHF')">CADCHF</button>
-            <button class="asset-btn" onclick="setAsset('GBPCAD')">GBPCAD</button>
-        </div>
+        <button class="action-btn" style="background: #da3633; margin-top: 10px;" onclick="resetStats()">🔄 Скинути статистику</button>
     </div>
 
     <nav>
-        <button class="nav-btn active">📊 Торгівля</button>
-        <button class="nav-btn" onclick="alert('Статистика сесії оновлюється автоматично в базі даних.')">📈 Статистика</button>
+        <button class="nav-btn active" id="navTrade" onclick="switchTab('trade')">📊 Торгівля</button>
+        <button class="nav-btn" id="navStats" onclick="switchTab('stats')">📈 Статистика</button>
     </nav>
 
     <script>
         let currentSymbol = 'GBPUSD';
         let currentExpiry = '5 хв';
+        const userId = 'default_user';
 
         function setExpiry(tf) {
             currentExpiry = tf;
@@ -306,14 +339,36 @@
             document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${symbol})`;
         }
 
+        function switchTab(tab) {
+            const tradeTab = document.getElementById('tradeTab');
+            const statsTab = document.getElementById('statsTab');
+            const navTrade = document.getElementById('navTrade');
+            const navStats = document.getElementById('navStats');
+
+            if (tab === 'trade') {
+                tradeTab.style.display = 'block';
+                statsTab.style.display = 'none';
+                navTrade.classList.add('active');
+                navStats.classList.remove('active');
+            } else {
+                tradeTab.style.display = 'none';
+                statsTab.style.display = 'block';
+                navStats.classList.add('active');
+                navTrade.classList.remove('active');
+                loadStats();
+            }
+        }
+
         async function fetchSignal() {
             const signalEl = document.getElementById('signalOutput');
             const detailsEl = document.getElementById('detailsOutput');
             const statusIndicator = document.getElementById('marketStatusText');
+            const resultBox = document.getElementById('tradeResultBox');
 
             signalEl.innerHTML = "⏳ Аналізуємо ринок...";
             detailsEl.innerHTML = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
             statusIndicator.innerHTML = '<span style="color: #d29922;">●</span> Аналіз ринку...';
+            resultBox.style.display = 'none';
 
             try {
                 const response = await fetch('/api/signal', {
@@ -325,12 +380,64 @@
                 const data = await response.json();
                 signalEl.innerHTML = data.signal;
                 detailsEl.innerHTML = `${data.details} (Ціна: ${data.price})`;
-                
                 statusIndicator.innerHTML = '<span style="color: #3fb950;">●</span> Готовий до роботи';
+                
+                if (!data.signal.includes('ПОМИЛКА')) {
+                    resultBox.style.display = 'grid';
+                }
             } catch (error) {
                 signalEl.innerHTML = "⚠️ ПОМИЛКА АНАЛІЗУ";
-                detailsEl.innerHTML = "Не вдалося отримати відповідь від сервера. Спробуйте ще раз.";
+                detailsEl.innerHTML = "Не вдалося отримати відповідь від сервера.";
                 statusIndicator.innerHTML = '<span style="color: #da3633;">●</span> Збій зв’язку';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats/get', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                const data = await res.json();
+                document.getElementById('statsContent').innerHTML = `
+                    ✅ Вдалих (Профіт): <b>${data.wins}</b><br>
+                    ❌ Невдалих (Збиток): <b>${data.losses}</b><br>
+                    📋 Всього угод: <b>${data.total}</b><br>
+                    🎯 Вінрейт (Winrate): <b>${data.winrate}%</b>
+                `;
+            } catch (e) {
+                document.getElementById('statsContent').innerText = "Помилка завантаження статистики.";
+            }
+        }
+
+        async function updateStats(type) {
+            try {
+                const res = await fetch('/api/stats/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, type: type })
+                });
+                const data = await res.json();
+                document.getElementById('tradeResultBox').style.display = 'none';
+                alert(`Результат збережено! Всього угод: ${data.total} | Вінрейт: ${data.winrate}%`);
+            } catch (e) {
+                alert("Не вдалося оновити статистику.");
+            }
+        }
+
+        async function resetStats() {
+            if (!confirm("Скинути всю статистику?")) return;
+            try {
+                await fetch('/api/stats/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                loadStats();
+                alert("Статистику успішно скинуто.");
+            } catch (e) {
+                alert("Помилка скидання.");
             }
         }
     </script>
