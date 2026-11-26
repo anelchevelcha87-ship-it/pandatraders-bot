@@ -117,7 +117,7 @@
             border-radius: 6px;
             cursor: pointer;
             text-align: center;
-            transition: background 0.15s ease, border-color 0.15s ease;
+            touch-action: manipulation;
         }
 
         .tf-btn.active {
@@ -139,7 +139,7 @@
             margin-bottom: 8px;
             text-align: center;
             box-shadow: 0 3px 10px rgba(35, 134, 54, 0.25);
-            transition: background 0.15s ease, opacity 0.15s ease;
+            touch-action: manipulation;
         }
 
         .action-btn:hover:not(:disabled) {
@@ -229,7 +229,7 @@
             cursor: pointer;
             text-align: center;
             text-transform: uppercase;
-            transition: background 0.15s ease, border-color 0.15s ease;
+            touch-action: manipulation;
         }
 
         .asset-btn.active {
@@ -331,6 +331,7 @@
             border-radius: 6px;
             cursor: pointer;
             text-align: center;
+            touch-action: manipulation;
         }
 
         .nav-btn.active {
@@ -344,7 +345,7 @@
 
     <header>
         <div class="logo">🐼 PANDATRADERS PRO</div>
-        <div class="status-badge" id="connStatus">● MULTI-TA</div>
+        <div class="status-badge" id="connStatus">● MULTI-TA · v2</div>
     </header>
 
     <!-- ВКЛАДКА: ТОРГІВЛЯ -->
@@ -362,14 +363,14 @@
                 <span id="currentSelectionLabel" style="color: var(--text-main); text-transform: none;">EURUSD · 5 хв</span>
             </div>
             <div class="timeframes-grid" id="tfContainer">
-                <button type="button" class="tf-btn active" onclick="setExpiry('5 хв', this)">5 хв</button>
-                <button type="button" class="tf-btn" onclick="setExpiry('15 хв', this)">15 хв</button>
-                <button type="button" class="tf-btn" onclick="setExpiry('30 хв', this)">30 хв</button>
-                <button type="button" class="tf-btn" onclick="setExpiry('1 год', this)">1 год</button>
+                <button type="button" class="tf-btn active" data-tf="5 хв">5 хв</button>
+                <button type="button" class="tf-btn" data-tf="15 хв">15 хв</button>
+                <button type="button" class="tf-btn" data-tf="30 хв">30 хв</button>
+                <button type="button" class="tf-btn" data-tf="1 год">1 год</button>
             </div>
         </div>
 
-        <button type="button" class="action-btn" id="analyzeBtn" onclick="fetchSignal()">
+        <button type="button" class="action-btn" id="analyzeBtn">
             🔍 Отримати мультианаліз
         </button>
 
@@ -385,8 +386,8 @@
                 </div>
 
                 <div class="trade-result-box" id="tradeResultBox">
-                    <button type="button" class="win-btn" onclick="updateStats('win')">✅ Профіт (+)</button>
-                    <button type="button" class="loss-btn" onclick="updateStats('loss')">❌ Збиток (-)</button>
+                    <button type="button" class="win-btn" id="winBtn">✅ Профіт (+)</button>
+                    <button type="button" class="loss-btn" id="lossBtn">❌ Збиток (-)</button>
                 </div>
                 <div class="feedback-note" id="tradeFeedback"></div>
             </div>
@@ -398,25 +399,25 @@
                 <span id="assetsCountLabel">19 пар</span>
             </div>
             <div class="assets-grid" id="assetsContainer">
-                <button type="button" class="asset-btn active" onclick="setAsset('EURUSD', this)">EURUSD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('GBPUSD', this)">GBPUSD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('USDJPY', this)">USDJPY</button>
-                <button type="button" class="asset-btn" onclick="setAsset('AUDUSD', this)">AUDUSD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('USDCAD', this)">USDCAD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('USDCHF', this)">USDCHF</button>
-                <button type="button" class="asset-btn" onclick="setAsset('NZDUSD', this)">NZDUSD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('EURGBP', this)">EURGBP</button>
-                <button type="button" class="asset-btn" onclick="setAsset('EURJPY', this)">EURJPY</button>
-                <button type="button" class="asset-btn" onclick="setAsset('GBPAUD', this)">GBPAUD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('CHFJPY', this)">CHFJPY</button>
-                <button type="button" class="asset-btn" onclick="setAsset('GBPCHF', this)">GBPCHF</button>
-                <button type="button" class="asset-btn" onclick="setAsset('AUDJPY', this)">AUDJPY</button>
-                <button type="button" class="asset-btn" onclick="setAsset('AUDCHF', this)">AUDCHF</button>
-                <button type="button" class="asset-btn" onclick="setAsset('EURCHF', this)">EURCHF</button>
-                <button type="button" class="asset-btn" onclick="setAsset('AUDCAD', this)">AUDCAD</button>
-                <button type="button" class="asset-btn" onclick="setAsset('CADJPY', this)">CADJPY</button>
-                <button type="button" class="asset-btn" onclick="setAsset('CADCHF', this)">CADCHF</button>
-                <button type="button" class="asset-btn" onclick="setAsset('GBPCAD', this)">GBPCAD</button>
+                <button type="button" class="asset-btn active" data-symbol="EURUSD">EURUSD</button>
+                <button type="button" class="asset-btn" data-symbol="GBPUSD">GBPUSD</button>
+                <button type="button" class="asset-btn" data-symbol="USDJPY">USDJPY</button>
+                <button type="button" class="asset-btn" data-symbol="AUDUSD">AUDUSD</button>
+                <button type="button" class="asset-btn" data-symbol="USDCAD">USDCAD</button>
+                <button type="button" class="asset-btn" data-symbol="USDCHF">USDCHF</button>
+                <button type="button" class="asset-btn" data-symbol="NZDUSD">NZDUSD</button>
+                <button type="button" class="asset-btn" data-symbol="EURGBP">EURGBP</button>
+                <button type="button" class="asset-btn" data-symbol="EURJPY">EURJPY</button>
+                <button type="button" class="asset-btn" data-symbol="GBPAUD">GBPAUD</button>
+                <button type="button" class="asset-btn" data-symbol="CHFJPY">CHFJPY</button>
+                <button type="button" class="asset-btn" data-symbol="GBPCHF">GBPCHF</button>
+                <button type="button" class="asset-btn" data-symbol="AUDJPY">AUDJPY</button>
+                <button type="button" class="asset-btn" data-symbol="AUDCHF">AUDCHF</button>
+                <button type="button" class="asset-btn" data-symbol="EURCHF">EURCHF</button>
+                <button type="button" class="asset-btn" data-symbol="AUDCAD">AUDCAD</button>
+                <button type="button" class="asset-btn" data-symbol="CADJPY">CADJPY</button>
+                <button type="button" class="asset-btn" data-symbol="CADCHF">CADCHF</button>
+                <button type="button" class="asset-btn" data-symbol="GBPCAD">GBPCAD</button>
             </div>
         </div>
     </div>
@@ -430,141 +431,143 @@
             </div>
             <div class="feedback-note" id="statsFeedback"></div>
         </div>
-        <button type="button" class="action-btn" style="background: var(--accent-red); margin-top: 6px;" onclick="resetStats()">
+        <button type="button" class="action-btn" id="resetStatsBtn" style="background: var(--accent-red); margin-top: 6px;">
             🔄 Скинути статистику
         </button>
     </div>
 
     <nav>
-        <button type="button" class="nav-btn active" id="navTrade" onclick="switchTab('trade')">📊 Торгівля</button>
-        <button type="button" class="nav-btn" id="navStats" onclick="switchTab('stats')">📈 Статистика</button>
+        <button type="button" class="nav-btn active" id="navTrade">📊 Торгівля</button>
+        <button type="button" class="nav-btn" id="navStats">📈 Статистика</button>
     </nav>
 
     <script>
-        let currentSymbol = 'EURUSD';
-        let currentExpiry = '5 хв';
-        let isFetching = false;
-        const userId = 'default_user';
+        (function () {
+            let currentSymbol = 'EURUSD';
+            let currentExpiry = '5 хв';
+            let isFetching = false;
+            const userId = 'default_user';
 
-        function syncSelectionLabels() {
-            document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${currentSymbol})`;
-            document.getElementById('currentSelectionLabel').innerText = `${currentSymbol} · ${currentExpiry}`;
-        }
-
-        function updateAssetsCount() {
-            const count = document.querySelectorAll('#assetsContainer .asset-btn').length;
-            document.getElementById('assetsCountLabel').innerText = `${count} пар`;
-        }
-
-        function setExpiry(tf, btnElement) {
-            currentExpiry = tf;
-            document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
-            if (btnElement) btnElement.classList.add('active');
-            syncSelectionLabels();
-        }
-
-        function setAsset(symbol, btnElement) {
-            currentSymbol = symbol;
-            document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
-            if (btnElement) btnElement.classList.add('active');
-            syncSelectionLabels();
-        }
-
-        function setQualityBadge(quality) {
-            const badge = document.getElementById('qualityBadge');
-            badge.className = 'quality-pill';
-
-            if (!quality || quality === '—') {
-                badge.innerText = '—';
-                return;
+            function syncSelectionLabels() {
+                document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${currentSymbol})`;
+                document.getElementById('currentSelectionLabel').innerText = `${currentSymbol} · ${currentExpiry}`;
             }
 
-            badge.innerText = `Якість: ${quality}`;
-            if (quality === 'Висока') {
-                badge.classList.add('quality-high');
-            } else if (quality === 'Середня') {
-                badge.classList.add('quality-mid');
-            } else {
-                badge.classList.add('quality-low');
+            function updateAssetsCount() {
+                const count = document.querySelectorAll('#assetsContainer .asset-btn').length;
+                document.getElementById('assetsCountLabel').innerText = `${count} пар`;
             }
-        }
 
-        function switchTab(tab) {
-            const tradeTab = document.getElementById('tradeTab');
-            const statsTab = document.getElementById('statsTab');
-            const navTrade = document.getElementById('navTrade');
-            const navStats = document.getElementById('navStats');
-
-            if (tab === 'trade') {
-                tradeTab.style.display = 'block';
-                statsTab.style.display = 'none';
-                navTrade.classList.add('active');
-                navStats.classList.remove('active');
-            } else {
-                tradeTab.style.display = 'none';
-                statsTab.style.display = 'block';
-                navStats.classList.add('active');
-                navTrade.classList.remove('active');
-                loadStats();
+            function setExpiry(tf, btnElement) {
+                currentExpiry = tf;
+                document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+                if (btnElement) btnElement.classList.add('active');
+                syncSelectionLabels();
             }
-        }
 
-        async function fetchSignal() {
-            if (isFetching) return;
-            isFetching = true;
+            function setAsset(symbol, btnElement) {
+                currentSymbol = symbol;
+                document.querySelectorAll('.asset-btn').forEach(btn => btn.classList.remove('active'));
+                if (btnElement) btnElement.classList.add('active');
+                syncSelectionLabels();
+            }
 
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            const signalEl = document.getElementById('signalOutput');
-            const detailsEl = document.getElementById('detailsOutput');
-            const statusIndicator = document.getElementById('marketStatusText');
-            const resultBox = document.getElementById('tradeResultBox');
-            const feedbackEl = document.getElementById('tradeFeedback');
+            function setQualityBadge(quality) {
+                const badge = document.getElementById('qualityBadge');
+                badge.className = 'quality-pill';
 
-            analyzeBtn.disabled = true;
-            feedbackEl.innerText = '';
-            signalEl.innerText = '⏳ Аналізуємо ринок...';
-            detailsEl.innerText = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
-            statusIndicator.innerHTML = '<span style="color: var(--accent-amber);">●</span> Аналіз ринку...';
-            resultBox.style.display = 'none';
-            setQualityBadge('—');
-
-            try {
-                const response = await fetch('/api/signal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: currentSymbol, expiry: currentExpiry })
-                });
-
-                const data = await response.json();
-                signalEl.innerText = data.signal || '⚠️ ПОМИЛКА АНАЛІЗУ';
-                setQualityBadge(data.quality || '—');
-
-                const pricePart = data.price && data.price !== '--' ? ` · Актуальна ціна: ${data.price}` : '';
-                detailsEl.innerText = `${data.details || ''}${pricePart}`;
-
-                const timeNow = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-                statusIndicator.innerHTML = `<span style="color: #3fb950;">●</span> Оновлено о ${timeNow}`;
-
-                const isError = (data.signal || '').includes('ПОМИЛКА');
-                const isFlat = (data.signal || '').includes('ФЛЕТ');
-                if (!isError && !isFlat) {
-                    resultBox.style.display = 'grid';
+                if (!quality || quality === '—') {
+                    badge.innerText = '—';
+                    return;
                 }
-            } catch (error) {
-                signalEl.innerText = '⚠️ ПОМИЛКА АНАЛІЗУ';
-                detailsEl.innerText = 'Не вдалося отримати відповідь від сервера.';
-                statusIndicator.innerHTML = '<span style="color: var(--accent-red);">●</span> Збій зв’язку';
-                setQualityBadge('Помилка');
-            } finally {
-                isFetching = false;
-                analyzeBtn.disabled = false;
-            }
-        }
 
-        function renderStats(data) {
-            document.getElementById('statsContent').innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">✅ Вдалих (Профіт)</div>
-                        <div class="stat-val" style="color: #3fb950;">${data.wins}</div>
-  
+                badge.innerText = `Якість: ${quality}`;
+                if (quality === 'Висока') {
+                    badge.classList.add('quality-high');
+                } else if (quality === 'Середня') {
+                    badge.classList.add('quality-mid');
+                } else {
+                    badge.classList.add('quality-low');
+                }
+            }
+
+            function switchTab(tab) {
+                const tradeTab = document.getElementById('tradeTab');
+                const statsTab = document.getElementById('statsTab');
+                const navTrade = document.getElementById('navTrade');
+                const navStats = document.getElementById('navStats');
+
+                if (tab === 'trade') {
+                    tradeTab.style.display = 'block';
+                    statsTab.style.display = 'none';
+                    navTrade.classList.add('active');
+                    navStats.classList.remove('active');
+                } else {
+                    tradeTab.style.display = 'none';
+                    statsTab.style.display = 'block';
+                    navStats.classList.add('active');
+                    navTrade.classList.remove('active');
+                    loadStats();
+                }
+            }
+
+            async function fetchSignal() {
+                if (isFetching) return;
+                isFetching = true;
+
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                const signalEl = document.getElementById('signalOutput');
+                const detailsEl = document.getElementById('detailsOutput');
+                const statusIndicator = document.getElementById('marketStatusText');
+                const resultBox = document.getElementById('tradeResultBox');
+                const feedbackEl = document.getElementById('tradeFeedback');
+
+                analyzeBtn.disabled = true;
+                feedbackEl.innerText = '';
+                signalEl.innerText = '⏳ Аналізуємо ринок...';
+                detailsEl.innerText = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
+                statusIndicator.innerHTML = '<span style="color: var(--accent-amber);">●</span> Аналіз ринку...';
+                resultBox.style.display = 'none';
+                setQualityBadge('—');
+
+                try {
+                    const response = await fetch('/api/signal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ symbol: currentSymbol, expiry: currentExpiry })
+                    });
+
+                    const data = await response.json();
+                    signalEl.innerText = data.signal || '⚠️ ПОМИЛКА АНАЛІЗУ';
+                    setQualityBadge(data.quality || '—');
+
+                    const pricePart = data.price && data.price !== '--' ? ` · Актуальна ціна: ${data.price}` : '';
+                    detailsEl.innerText = `${data.details || ''}${pricePart}`;
+
+                    const timeNow = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+                    statusIndicator.innerHTML = `<span style="color: #3fb950;">●</span> Оновлено о ${timeNow}`;
+
+                    const isError = (data.signal || '').includes('ПОМИЛКА');
+                    const isFlat = (data.signal || '').includes('ФЛЕТ');
+                    if (!isError && !isFlat) {
+                        resultBox.style.display = 'grid';
+                    }
+                } catch (error) {
+                    signalEl.innerText = '⚠️ ПОМИЛКА АНАЛІЗУ';
+                    detailsEl.innerText = 'Не вдалося отримати відповідь від сервера.';
+                    statusIndicator.innerHTML = '<span style="color: var(--accent-red);">●</span> Збій зв’язку';
+                    setQualityBadge('Помилка');
+                } finally {
+                    isFetching = false;
+                    analyzeBtn.disabled = false;
+                }
+            }
+
+            function renderStats(data) {
+                document.getElementById('statsContent').innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">✅ Вдалих (Профіт)</div>
+                            <div class="stat-val" style="color: #3fb950;">${data.wins}</div>
+                        </div>
+                        
