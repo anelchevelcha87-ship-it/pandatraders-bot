@@ -345,7 +345,7 @@
 
     <header>
         <div class="logo">🐼 PANDATRADERS PRO</div>
-        <div class="status-badge" id="connStatus">● MULTI-TA · v2</div>
+        <div class="status-badge" id="connStatus">● MULTI-TA · v2.1</div>
     </header>
 
     <!-- ВКЛАДКА: ТОРГІВЛЯ -->
@@ -448,14 +448,28 @@
             let isFetching = false;
             const userId = 'default_user';
 
+            function showDebugError(msg) {
+                const signalEl = document.getElementById('signalOutput');
+                const detailsEl = document.getElementById('detailsOutput');
+                if (signalEl) signalEl.textContent = '⚠️ Помилка скрипту';
+                if (detailsEl) detailsEl.textContent = msg;
+            }
+
+            window.addEventListener('error', function (e) {
+                showDebugError((e.message || 'JS error') + ' (рядок ' + (e.lineno || '?') + ')');
+            });
+
             function syncSelectionLabels() {
-                document.getElementById('activeTitle').innerText = `Глибокий аналіз активу (${currentSymbol})`;
-                document.getElementById('currentSelectionLabel').innerText = `${currentSymbol} · ${currentExpiry}`;
+                const activeTitle = document.getElementById('activeTitle');
+                const selLabel = document.getElementById('currentSelectionLabel');
+                if (activeTitle) activeTitle.textContent = 'Глибокий аналіз активу (' + currentSymbol + ')';
+                if (selLabel) selLabel.textContent = currentSymbol + ' · ' + currentExpiry;
             }
 
             function updateAssetsCount() {
                 const count = document.querySelectorAll('#assetsContainer .asset-btn').length;
-                document.getElementById('assetsCountLabel').innerText = `${count} пар`;
+                const countEl = document.getElementById('assetsCountLabel');
+                if (countEl) countEl.textContent = count + ' пар';
             }
 
             function setExpiry(tf, btnElement) {
@@ -474,21 +488,16 @@
 
             function setQualityBadge(quality) {
                 const badge = document.getElementById('qualityBadge');
+                if (!badge) return;
                 badge.className = 'quality-pill';
-
                 if (!quality || quality === '—') {
-                    badge.innerText = '—';
+                    badge.textContent = '—';
                     return;
                 }
-
-                badge.innerText = `Якість: ${quality}`;
-                if (quality === 'Висока') {
-                    badge.classList.add('quality-high');
-                } else if (quality === 'Середня') {
-                    badge.classList.add('quality-mid');
-                } else {
-                    badge.classList.add('quality-low');
-                }
+                badge.textContent = 'Якість: ' + quality;
+                if (quality === 'Висока') badge.classList.add('quality-high');
+                else if (quality === 'Середня') badge.classList.add('quality-mid');
+                else badge.classList.add('quality-low');
             }
 
             function switchTab(tab) {
@@ -496,6 +505,7 @@
                 const statsTab = document.getElementById('statsTab');
                 const navTrade = document.getElementById('navTrade');
                 const navStats = document.getElementById('navStats');
+                if (!tradeTab || !statsTab || !navTrade || !navStats) return;
 
                 if (tab === 'trade') {
                     tradeTab.style.display = 'block';
@@ -522,12 +532,12 @@
                 const resultBox = document.getElementById('tradeResultBox');
                 const feedbackEl = document.getElementById('tradeFeedback');
 
-                analyzeBtn.disabled = true;
-                feedbackEl.innerText = '';
-                signalEl.innerText = '⏳ Аналізуємо ринок...';
-                detailsEl.innerText = `Збираємо показники по ${currentSymbol} на таймфреймі ${currentExpiry}...`;
-                statusIndicator.innerHTML = '<span style="color: var(--accent-amber);">●</span> Аналіз ринку...';
-                resultBox.style.display = 'none';
+                if (analyzeBtn) analyzeBtn.disabled = true;
+                if (feedbackEl) feedbackEl.textContent = '';
+                if (signalEl) signalEl.textContent = '⏳ Аналізуємо ринок...';
+                if (detailsEl) detailsEl.textContent = 'Збираємо показники по ' + currentSymbol + ' на таймфреймі ' + currentExpiry + '...';
+                if (statusIndicator) statusIndicator.innerHTML = '<span style="color: var(--accent-amber);">●</span> Аналіз ринку...';
+                if (resultBox) resultBox.style.display = 'none';
                 setQualityBadge('—');
 
                 try {
@@ -537,37 +547,20 @@
                         body: JSON.stringify({ symbol: currentSymbol, expiry: currentExpiry })
                     });
 
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
                     const data = await response.json();
-                    signalEl.innerText = data.signal || '⚠️ ПОМИЛКА АНАЛІЗУ';
+                    if (signalEl) signalEl.textContent = data.signal || '⚠️ ПОМИЛКА АНАЛІЗУ';
                     setQualityBadge(data.quality || '—');
 
-                    const pricePart = data.price && data.price !== '--' ? ` · Актуальна ціна: ${data.price}` : '';
-                    detailsEl.innerText = `${data.details || ''}${pricePart}`;
+                    const pricePart = data.price && data.price !== '--' ? ' · Ціна: ' + data.price : '';
+                    if (detailsEl) detailsEl.textContent = (data.details || '') + pricePart;
 
                     const timeNow = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
-                    statusIndicator.innerHTML = `<span style="color: #3fb950;">●</span> Оновлено о ${timeNow}`;
+                    if (statusIndicator) statusIndicator.innerHTML = '<span style="color: #3fb950;">●</span> Оновлено о ' + timeNow;
 
-                    const isError = (data.signal || '').includes('ПОМИЛКА');
-                    const isFlat = (data.signal || '').includes('ФЛЕТ');
-                    if (!isError && !isFlat) {
-                        resultBox.style.display = 'grid';
-                    }
-                } catch (error) {
-                    signalEl.innerText = '⚠️ ПОМИЛКА АНАЛІЗУ';
-                    detailsEl.innerText = 'Не вдалося отримати відповідь від сервера.';
-                    statusIndicator.innerHTML = '<span style="color: var(--accent-red);">●</span> Збій зв’язку';
-                    setQualityBadge('Помилка');
-                } finally {
-                    isFetching = false;
-                    analyzeBtn.disabled = false;
-                }
-            }
-
-            function renderStats(data) {
-                document.getElementById('statsContent').innerHTML = `
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <div class="stat-label">✅ Вдалих (Профіт)</div>
-                            <div class="stat-val" style="color: #3fb950;">${data.wins}</div>
-                        </div>
-                        
+                    const sig = data.signal || '';
+                    if (!sig.includes('ПОМИЛКА') && !sig.includes('ФЛЕТ') && resultBox) {
+                        resultBox.style
